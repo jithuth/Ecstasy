@@ -40,15 +40,19 @@ require_once 'includes/header.php';
             <div class="marquee-content">
                 <?php foreach ($clients as $client): ?>
                     <?php if (file_exists("assets/images/clients/" . $client['logo'])): ?>
-                        <img src="assets/images/clients/<?php echo htmlspecialchars($client['logo']); ?>"
-                            alt="<?php echo htmlspecialchars($client['name']); ?>">
+                        <div class="client-item" data-name="<?php echo htmlspecialchars($client['name']); ?>">
+                            <img src="assets/images/clients/<?php echo htmlspecialchars($client['logo']); ?>"
+                                alt="<?php echo htmlspecialchars($client['name']); ?>">
+                        </div>
                     <?php endif; ?>
                 <?php endforeach; ?>
                 <!-- Duplicate for seamless loop -->
                 <?php foreach ($clients as $client): ?>
                     <?php if (file_exists("assets/images/clients/" . $client['logo'])): ?>
-                        <img src="assets/images/clients/<?php echo htmlspecialchars($client['logo']); ?>"
-                            alt="<?php echo htmlspecialchars($client['name']); ?>">
+                        <div class="client-item" data-name="<?php echo htmlspecialchars($client['name']); ?>">
+                            <img src="assets/images/clients/<?php echo htmlspecialchars($client['logo']); ?>"
+                                alt="<?php echo htmlspecialchars($client['name']); ?>">
+                        </div>
                     <?php endif; ?>
                 <?php endforeach; ?>
             </div>

@@ -220,6 +220,7 @@ $slides = $stmt->fetchAll();
             <a href="about.php">About Us</a>
             <a href="carousel.php" class="active">Carousel</a>
             <a href="clients.php">Clients</a>
+            <a href="messages.php">Messages</a>
         </div>
 
         <?php if ($message)
@@ -227,7 +228,8 @@ $slides = $stmt->fetchAll();
 
         <div class="card">
             <h2 style="color: var(--heading-color); margin-bottom: 20px;">
-                <?php echo $editMode ? 'Edit Slide' : 'Add New Slide'; ?></h2>
+                <?php echo $editMode ? 'Edit Slide' : 'Add New Slide'; ?>
+            </h2>
             <form action="carousel.php" method="post" enctype="multipart/form-data">
                 <input type="hidden" name="id" value="<?php echo htmlspecialchars($slideData['id']); ?>">
                 <div class="form-group">

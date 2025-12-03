@@ -36,6 +36,39 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $logo = $newFilename;
             }
         }
+    } else {
+        // Generate Default Logo from First Letter
+        $letter = strtoupper(substr($name, 0, 1));
+        $width = 150;
+        $height = 150;
+        $image = imagecreate($width, $height);
+
+        // Random pastel background
+        $bgR = rand(200, 255);
+        $bgG = rand(200, 255);
+        $bgB = rand(200, 255);
+        $background = imagecolorallocate($image, $bgR, $bgG, $bgB);
+
+        // Dark text
+        $textColor = imagecolorallocate($image, 50, 50, 50);
+
+        // Center the text
+        $font = 5; // Largest built-in font
+        $fw = imagefontwidth($font);
+        $fh = imagefontheight($font);
+
+        $x = ($width - $fw) / 2;
+        $y = ($height - $fh) / 2;
+
+        imagestring($image, $font, $x, $y, $letter, $textColor);
+
+        $newFilename = 'client_' . time() . '_default.png';
+        $uploadPath = '../assets/images/clients/' . $newFilename;
+
+        if (imagepng($image, $uploadPath)) {
+            $logo = $newFilename;
+        }
+        imagedestroy($image);
     }
 
     if ($logo) {
@@ -44,7 +77,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $message = "Client added successfully!";
         }
     } else {
-        $message = "Please upload a logo.";
+        $message = "Failed to upload or generate logo.";
     }
 }
 
@@ -169,6 +202,7 @@ $clients = $stmt->fetchAll();
             <a href="about.php">About Us</a>
             <a href="carousel.php">Carousel</a>
             <a href="clients.php" class="active">Clients</a>
+            <a href="messages.php">Messages</a>
         </div>
 
         <?php if ($message)
@@ -182,8 +216,8 @@ $clients = $stmt->fetchAll();
                     <input type="text" name="name" required>
                 </div>
                 <div class="form-group">
-                    <label>Logo</label>
-                    <input type="file" name="logo" required>
+                    <label>Logo (Optional - Default will be generated)</label>
+                    <input type="file" name="logo">
                 </div>
                 <button type="submit" class="btn"
                     style="background: var(--secondary-color); color: var(--bg-color); font-weight: bold;">Add

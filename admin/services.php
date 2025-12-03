@@ -191,8 +191,13 @@ $services = $stmt->fetchAll();
         </div>
 
         <div class="admin-nav">
-            <a href="index.php">General Settings</a>
-            <a href="services.php" class="active">Manage Services</a>
+            <a href="index.php">General</a>
+            <a href="services.php" class="active">Services</a>
+            <a href="seo.php">SEO</a>
+            <a href="about.php">About Us</a>
+            <a href="carousel.php">Carousel</a>
+            <a href="clients.php">Clients</a>
+            <a href="messages.php">Messages</a>
         </div>
 
         <?php if ($message)

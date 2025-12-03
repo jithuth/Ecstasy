@@ -7,7 +7,7 @@
     --bg-color: #0a192f;
     --light-bg: #112240;
     --card-bg: #112240;
-    --nav-bg: rgba(10, 25, 47, 0.85);
+    --nav-bg: rgba(10, 25, 47, 0.95);
     --white: #ffffff;
     --shadow: 0 10px 30px -10px rgba(2, 12, 27, 0.7);
     --transition: all 0.3s ease;
@@ -23,7 +23,7 @@
     --bg-color: #f8f9fa;
     --light-bg: #ffffff;
     --card-bg: #ffffff;
-    --nav-bg: rgba(255, 255, 255, 0.85);
+    --nav-bg: rgba(255, 255, 255, 0.95);
     --white: #000000;
     --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
@@ -73,6 +73,40 @@ header {
     font-size: 24px;
     font-weight: 700;
     color: var(--secondary-color);
+}
+
+.mobile-menu-toggle {
+    display: none;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 30px;
+    height: 21px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    z-index: 1001;
+}
+
+.mobile-menu-toggle span {
+    display: block;
+    width: 100%;
+    height: 3px;
+    background-color: var(--secondary-color);
+    border-radius: 3px;
+    transition: var(--transition);
+}
+
+/* Hamburger Animation */
+.mobile-menu-toggle.active span:nth-child(1) {
+    transform: translateY(9px) rotate(45deg);
+}
+
+.mobile-menu-toggle.active span:nth-child(2) {
+    opacity: 0;
+}
+
+.mobile-menu-toggle.active span:nth-child(3) {
+    transform: translateY(-9px) rotate(-45deg);
 }
 
 nav ul {
@@ -160,7 +194,7 @@ nav a:hover {
 
 .carousel-content h1 {
     font-size: 60px;
-    color: var(--heading-color);
+    color: #ffffff;
     margin-bottom: 20px;
     opacity: 0;
     transform: translateY(30px);
@@ -313,10 +347,16 @@ nav a:hover {
 
 .services-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(5, 1fr);
     gap: 25px;
     text-align: center;
     /* Center align services */
+}
+
+@media (max-width: 1200px) {
+    .services-grid {
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    }
 }
 
 .service-card {
@@ -400,7 +440,7 @@ nav a:hover {
 .marquee-container {
     overflow: hidden;
     padding: 50px 0;
-    background: var(--light-bg);
+    background: transparent;
     white-space: nowrap;
     position: relative;
 }
@@ -410,17 +450,47 @@ nav a:hover {
     animation: marquee 20s linear infinite;
 }
 
-.marquee-content img {
-    height: 60px;
+.client-item {
+    display: inline-block;
+    position: relative;
     margin: 0 40px;
+}
+
+.client-item img {
+    height: 60px;
     opacity: 0.6;
     transition: opacity 0.3s;
     filter: grayscale(100%);
+    display: block;
 }
 
-.marquee-content img:hover {
+.client-item:hover img {
     opacity: 1;
     filter: grayscale(0%);
+}
+
+.client-item::after {
+    content: attr(data-name);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-10px);
+    background: var(--secondary-color);
+    color: var(--bg-color);
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s, transform 0.3s;
+    font-weight: bold;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.client-item:hover::after {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-5px);
 }
 
 @keyframes marquee {
@@ -476,9 +546,35 @@ footer {
         padding: 20px;
     }
 
+    .mobile-menu-toggle {
+        display: flex;
+    }
+
     nav ul {
-        display: none;
-        /* Mobile menu to be implemented if needed */
+        position: fixed;
+        top: 0;
+        right: -100%;
+        width: 70%;
+        height: 100vh;
+        background-color: var(--light-bg);
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        transition: right 0.3s ease;
+        box-shadow: -5px 0 15px rgba(0, 0, 0, 0.2);
+        z-index: 1000;
+    }
+
+    nav ul.active {
+        right: 0;
+    }
+
+    nav ul li {
+        margin: 20px 0;
+    }
+
+    nav a {
+        font-size: 18px;
     }
 
     .about-container {
@@ -491,5 +587,129 @@ footer {
 
     .carousel-content h2 {
         font-size: 20px;
+    }
+
+    .section {
+        padding: 60px 20px;
+    }
+
+    .services-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Contact Page Responsive */
+    .contact-container {
+        flex-direction: column;
+    }
+
+    /* Adjust flex containers that are inline styles in PHP files */
+    div[style*="display: flex"] {
+        flex-direction: column;
+    }
+
+    div[style*="display: flex"]>div {
+        width: 100% !important;
+        margin-bottom: 20px;
+    }
+
+    /* Revert flex-direction for specific elements if needed, like header */
+    header[style*="display: flex"],
+    header {
+        flex-direction: row !important;
+    }
+
+    .carousel-nav {
+        flex-direction: row !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero h1 {
+        font-size: 32px;
+    }
+
+    .hero h2 {
+        font-size: 24px;
+    }
+
+    .section-title {
+        font-size: 28px;
+    }
+
+    .section-title::after {
+        width: 100px;
+    }
+}
+
+/* Preloader Styles */
+#preloader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--bg-color);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: opacity 0.5s ease;
+}
+
+.loader-content {
+    text-align: center;
+}
+
+.loader-text {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--secondary-color);
+    margin-bottom: 20px;
+    letter-spacing: 2px;
+    animation: pulse 2s infinite;
+}
+
+.loader-dots span {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: var(--text-color);
+    margin: 0 5px;
+    animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.loader-dots span:nth-child(1) {
+    animation-delay: -0.32s;
+}
+
+.loader-dots span:nth-child(2) {
+    animation-delay: -0.16s;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 0.6;
+    }
+
+    50% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0.6;
+    }
+}
+
+@keyframes bounce {
+
+    0%,
+    80%,
+    100% {
+        transform: scale(0);
+    }
+
+    40% {
+        transform: scale(1);
     }
 }

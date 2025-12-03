@@ -121,6 +121,7 @@ $seoKeywords = get_setting($pdo, 'seo_keywords');
             <a href="about.php">About Us</a>
             <a href="carousel.php">Carousel</a>
             <a href="clients.php">Clients</a>
+            <a href="messages.php">Messages</a>
         </div>
 
         <?php if ($message)

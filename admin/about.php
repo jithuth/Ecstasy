@@ -140,6 +140,7 @@ $aboutImage = get_setting($pdo, 'about_image');
             <a href="about.php" class="active">About Us</a>
             <a href="carousel.php">Carousel</a>
             <a href="clients.php">Clients</a>
+            <a href="messages.php">Messages</a>
         </div>
 
         <?php if ($message)
