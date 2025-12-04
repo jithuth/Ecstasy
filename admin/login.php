@@ -44,23 +44,57 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Login</title>
     <link rel="stylesheet" href="../assets/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        .login-container {
-            height: 100vh;
+        :root {
+            --glass-bg: rgba(17, 34, 64, 0.7);
+            --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+            --neon-accent: #64ffda;
+        }
+
+        body {
+            background-color: #020c1b;
+            background-image: radial-gradient(circle at 10% 20%, rgba(100, 255, 218, 0.05) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(0, 112, 243, 0.05) 0%, transparent 20%);
+            min-height: 100vh;
+            color: #8892b0;
+            font-family: 'Inter', sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
+            margin: 0;
         }
 
         .login-box {
-            background: var(--card-bg);
+            background: var(--glass-bg);
             padding: 40px;
-            border-radius: 8px;
+            border-radius: 16px;
+            border: var(--glass-border);
             width: 100%;
             max-width: 400px;
-            box-shadow: var(--shadow);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .login-header h2 {
+            color: #ccd6f6;
+            font-size: 24px;
+            margin: 0 0 10px;
+        }
+
+        .login-header p {
+            font-size: 14px;
+            color: var(--neon-accent);
+            margin: 0;
         }
 
         .form-group {
@@ -70,16 +104,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         .form-group label {
             display: block;
             margin-bottom: 8px;
-            color: var(--heading-color);
+            color: #ccd6f6;
+            font-size: 14px;
+            font-weight: 500;
         }
 
         .form-group input {
             width: 100%;
-            padding: 10px;
-            border-radius: 4px;
-            border: 1px solid var(--text-color);
-            background: var(--bg-color);
-            color: var(--text-color);
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(2, 12, 27, 0.5);
+            color: #ccd6f6;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--neon-accent);
+            box-shadow: 0 0 10px rgba(100, 255, 218, 0.1);
         }
 
         .password-wrapper {
@@ -88,70 +132,105 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         .password-toggle {
             position: absolute;
-            right: 10px;
+            right: 12px;
             top: 50%;
             transform: translateY(-50%);
             cursor: pointer;
-            color: var(--text-color);
+            color: #8892b0;
             background: none;
             border: none;
             padding: 0;
             display: flex;
             align-items: center;
+            transition: color 0.3s;
         }
 
         .password-toggle:hover {
-            color: var(--secondary-color);
+            color: var(--neon-accent);
+        }
+
+        .btn-submit {
+            background: var(--neon-accent);
+            color: #020c1b;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            display: block;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .btn-submit:hover {
+            background: #4cdbb3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(100, 255, 218, 0.3);
         }
 
         .error {
+            background: rgba(255, 107, 107, 0.1);
             color: #ff6b6b;
+            padding: 12px;
+            border-radius: 8px;
             margin-bottom: 20px;
             font-size: 14px;
+            text-align: center;
+            border: 1px solid rgba(255, 107, 107, 0.2);
+        }
+
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .back-link a {
+            color: #8892b0;
+            text-decoration: none;
+            font-size: 13px;
+            transition: color 0.3s;
+        }
+
+        .back-link a:hover {
+            color: var(--neon-accent);
         }
     </style>
 </head>
 
 <body>
-    <div class="login-container">
-        <div class="login-box">
-            <h2 style="color: var(--heading-color); margin-bottom: 20px; text-align: center;">Admin Login</h2>
-            <?php if ($error)
-                echo '<p class="error">' . $error . '</p>'; ?>
-            <form action="" method="post">
-                <div class="form-group">
-                    <label>Username</label>
-                    <input type="text" name="username" required>
+    <div class="login-box">
+        <div class="login-header">
+            <h2>Admin Login</h2>
+            <p>Enter your credentials to access</p>
+        </div>
+
+        <?php if ($error): ?>
+            <div class="error">
+                <i class="fas fa-exclamation-circle"></i> <?php echo $error; ?>
+            </div>
+        <?php endif; ?>
+
+        <form action="" method="post">
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" name="username" required placeholder="Enter username">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <div class="password-wrapper">
+                    <input type="password" name="password" id="password" required placeholder="Enter password">
+                    <button type="button" class="password-toggle" onclick="togglePassword()">
+                        <i class="fas fa-eye" id="eye-icon"></i>
+                        <i class="fas fa-eye-slash" id="eye-off-icon" style="display: none;"></i>
+                    </button>
                 </div>
-                <div class="form-group">
-                    <label>Password</label>
-                    <div class="password-wrapper">
-                        <input type="password" name="password" id="password" required>
-                        <button type="button" class="password-toggle" onclick="togglePassword()">
-                            <!-- Eye Icon -->
-                            <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20"
-                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                <circle cx="12" cy="12" r="3"></circle>
-                            </svg>
-                            <!-- Eye Off Icon (Hidden by default) -->
-                            <svg id="eye-off-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20"
-                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                stroke-linecap="round" stroke-linejoin="round" style="display: none;">
-                                <path
-                                    d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24">
-                                </path>
-                                <line x1="1" y1="1" x2="23" y2="23"></line>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-                <button type="submit" class="btn" style="width: 100%;">Login</button>
-            </form>
-            <p style="margin-top: 20px; text-align: center; font-size: 12px;">
-                <a href="../index.php">Back to Home</a>
-            </p>
+            </div>
+            <button type="submit" class="btn-submit">Sign In</button>
+        </form>
+        <div class="back-link">
+            <a href="../index.php"><i class="fas fa-arrow-left"></i> Back to Website</a>
         </div>
     </div>
 

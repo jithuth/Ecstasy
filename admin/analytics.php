@@ -167,7 +167,8 @@ if (isset($_GET['export']) && $_GET['export'] == 'csv') {
 
         /* Navigation */
         .admin-nav {
-            background: #0a192f; /* Darker background */
+            background: #0a192f;
+            /* Darker background */
             border: 1px solid rgba(255, 255, 255, 0.05);
             padding: 15px 30px;
             border-radius: 12px;
@@ -216,12 +217,12 @@ if (isset($_GET['export']) && $_GET['export'] == 'csv') {
             color: var(--neon-accent);
             border: 1px solid rgba(100, 255, 218, 0.2);
         }
-        
+
         .logout-btn {
-             color: #ff6b6b !important;
-             padding: 8px 12px !important;
+            color: #ff6b6b !important;
+            padding: 8px 12px !important;
         }
-        
+
         .logout-btn:hover {
             background: rgba(255, 107, 107, 0.1) !important;
         }
@@ -347,7 +348,7 @@ if (isset($_GET['export']) && $_GET['export'] == 'csv') {
             padding: 2px 8px;
             border-radius: 10px;
         }
-        
+
         /* Live Indicator */
         .live-dot {
             display: inline-block;
@@ -358,11 +359,22 @@ if (isset($_GET['export']) && $_GET['export'] == 'csv') {
             margin-right: 5px;
             animation: pulse 1.5s infinite;
         }
-        
+
         @keyframes pulse {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(255, 107, 107, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 107, 107, 0); }
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.7);
+            }
+
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 10px rgba(255, 107, 107, 0);
+            }
+
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(255, 107, 107, 0);
+            }
         }
 
         /* Charts & Tables */
@@ -372,7 +384,7 @@ if (isset($_GET['export']) && $_GET['export'] == 'csv') {
             gap: 25px;
             margin-bottom: 30px;
         }
-        
+
         .charts-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -381,7 +393,9 @@ if (isset($_GET['export']) && $_GET['export'] == 'csv') {
         }
 
         @media (max-width: 1024px) {
-            .dashboard-grid, .charts-row {
+
+            .dashboard-grid,
+            .charts-row {
                 grid-template-columns: 1fr;
             }
         }
@@ -395,7 +409,7 @@ if (isset($_GET['export']) && $_GET['export'] == 'csv') {
             position: relative;
             width: 100%;
         }
-        
+
         .donut-container {
             background: var(--glass-bg);
             border: var(--glass-border);
@@ -407,7 +421,7 @@ if (isset($_GET['export']) && $_GET['export'] == 'csv') {
             display: flex;
             flex-direction: column;
         }
-        
+
         .donut-wrapper {
             flex: 1;
             position: relative;
@@ -500,25 +514,12 @@ if (isset($_GET['export']) && $_GET['export'] == 'csv') {
 <body>
     <div class="admin-container">
         <!-- Navigation -->
-        <nav class="admin-nav">
-            <h3><i class="fas fa-chart-line"></i> Analytics</h3>
-            <ul>
-                <li><a href="index.php">Dashboard</a></li>
-                <li><a href="services.php">Services</a></li>
-                <li><a href="clients.php">Clients</a></li>
-                <li><a href="about.php">About</a></li>
-                <li><a href="carousel.php">Carousel</a></li>
-                <li><a href="seo.php">SEO</a></li>
-                <li><a href="messages.php">Messages</a></li>
-                <li><a href="analytics.php" class="active">Analytics</a></li>
-                <li><a href="logout.php" class="logout-btn"><i class="fas fa-sign-out-alt"></i></a></li>
-            </ul>
-        </nav>
+        <?php $currentPage = 'analytics';
+        include 'header.php'; ?>
 
-        <!-- Header -->
         <div class="header-actions">
             <div>
-                <h1>Dashboard Overview</h1>
+                <h1>Analytics Dashboard</h1>
                 <p style="color: var(--text-color); margin-top: 5px;">Track your website performance and growth.</p>
             </div>
             <div style="display: flex; gap: 15px; align-items: center;">
@@ -553,7 +554,8 @@ if (isset($_GET['export']) && $_GET['export'] == 'csv') {
                     <span class="live-dot"></span> <?php echo number_format($liveUsers); ?>
                 </div>
                 <div class="trend-indicator" style="color: #ff6b6b; background: rgba(255, 107, 107, 0.1);">
-                    <span style="margin-right: 10px;"><i class="fas fa-desktop"></i> Web: <?php echo $liveDesktop; ?></span>
+                    <span style="margin-right: 10px;"><i class="fas fa-desktop"></i> Web:
+                        <?php echo $liveDesktop; ?></span>
                     <span><i class="fas fa-mobile-alt"></i> Mobile: <?php echo $liveMobile; ?></span>
                 </div>
             </div>
@@ -607,23 +609,25 @@ if (isset($_GET['export']) && $_GET['export'] == 'csv') {
                 </div>
             </div>
         </div>
-        
+
         <!-- Device & OS Charts Row -->
         <div class="charts-row">
             <!-- Device Chart -->
             <div class="donut-container">
                 <div class="section-header">
-                    <h3><i class="fas fa-mobile-alt" style="color: #ff6b6b; margin-right: 10px;"></i> Device Breakdown</h3>
+                    <h3><i class="fas fa-mobile-alt" style="color: #ff6b6b; margin-right: 10px;"></i> Device Breakdown
+                    </h3>
                 </div>
                 <div class="donut-wrapper">
                     <canvas id="deviceChart"></canvas>
                 </div>
             </div>
-            
+
             <!-- OS Chart -->
             <div class="donut-container">
                 <div class="section-header">
-                    <h3><i class="fas fa-desktop" style="color: #4cc9f0; margin-right: 10px;"></i> Operating Systems</h3>
+                    <h3><i class="fas fa-desktop" style="color: #4cc9f0; margin-right: 10px;"></i> Operating Systems
+                    </h3>
                 </div>
                 <div class="donut-wrapper">
                     <canvas id="osChart"></canvas>
@@ -680,7 +684,6 @@ if (isset($_GET['export']) && $_GET['export'] == 'csv') {
                 </table>
             </div>
         </div>
-
     </div>
 
     <script>
@@ -693,7 +696,9 @@ if (isset($_GET['export']) && $_GET['export'] == 'csv') {
                     position: 'bottom',
                     labels: {
                         color: '#8892b0',
-                        font: { family: "'Inter', sans-serif" },
+                        font: {
+                            family: "'Inter', sans-serif"
+                        },
                         padding: 20
                     }
                 },
@@ -736,18 +741,35 @@ if (isset($_GET['export']) && $_GET['export'] == 'csv') {
             options: {
                 ...commonOptions,
                 plugins: {
-                    legend: { display: false },
+                    legend: {
+                        display: false
+                    },
                     tooltip: commonOptions.plugins.tooltip
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
-                        grid: { color: 'rgba(255, 255, 255, 0.05)', drawBorder: false },
-                        ticks: { color: '#8892b0', font: { family: "'Inter', sans-serif" } }
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.05)',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            color: '#8892b0',
+                            font: {
+                                family: "'Inter', sans-serif"
+                            }
+                        }
                     },
                     x: {
-                        grid: { display: false },
-                        ticks: { color: '#8892b0', font: { family: "'Inter', sans-serif" } }
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: '#8892b0',
+                            font: {
+                                family: "'Inter', sans-serif"
+                            }
+                        }
                     }
                 }
             }
@@ -784,4 +806,5 @@ if (isset($_GET['export']) && $_GET['export'] == 'csv') {
         });
     </script>
 </body>
+
 </html>

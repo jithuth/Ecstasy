@@ -350,25 +350,13 @@ $services = $stmt->fetchAll();
 <body>
     <div class="admin-container">
         <!-- Navigation -->
-        <nav class="admin-nav">
-            <h3><i class="fas fa-cogs"></i> Admin Panel</h3>
-            <ul>
-                <li><a href="index.php">Dashboard</a></li>
-                <li><a href="services.php" class="active">Services</a></li>
-                <li><a href="clients.php">Clients</a></li>
-                <li><a href="about.php">About</a></li>
-                <li><a href="carousel.php">Carousel</a></li>
-                <li><a href="seo.php">SEO</a></li>
-                <li><a href="messages.php">Messages</a></li>
-                <li><a href="analytics.php">Analytics</a></li>
-                <li><a href="logout.php" class="logout-btn"><i class="fas fa-sign-out-alt"></i></a></li>
-            </ul>
-        </nav>
+        <?php $currentPage = 'services';
+        include 'header.php'; ?>
 
         <div class="admin-header">
             <h1>Manage Services</h1>
-            <a href="../index.php" target="_blank" class="btn">
-                <i class="fas fa-external-link-alt"></i> View Site
+            <a href="../index.php#services" target="_blank" class="btn">
+                <i class="fas fa-external-link-alt"></i> View Section
             </a>
         </div>
 

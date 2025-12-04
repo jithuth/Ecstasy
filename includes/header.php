@@ -35,14 +35,15 @@ $currentTitle = isset($pageTitle) ? $pageTitle . ' | ' . get_setting($pdo, 'site
     </div>
 
     <script>
-        window.addEventListener('load', function() {
+        window.addEventListener('load', function () {
             const preloader = document.getElementById('preloader');
             // Add a small delay to ensure the animation is seen
-            setTimeout(function() {
+            setTimeout(function () {
                 preloader.style.opacity = '0';
-                setTimeout(function() {
+                setTimeout(function () {
                     preloader.style.display = 'none';
-                }, 500);}, 1500);
+                }, 500);
+            }, 1500);
         });
     </script>
 
@@ -58,6 +59,7 @@ $currentTitle = isset($pageTitle) ? $pageTitle . ' | ' . get_setting($pdo, 'site
                 <li><a href="index.php">Home</a></li>
                 <li><a href="about.php">About</a></li>
                 <li><a href="services.php">Services</a></li>
+                <li><a href="careers.php">Careers</a></li>
                 <li><a href="contact.php">Contact</a></li>
                 <li>
                     <button id="theme-toggle" class="theme-toggle" title="Toggle Theme">☀️</button>

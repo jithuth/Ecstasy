@@ -88,7 +88,6 @@ $contactAddress = get_setting($pdo, 'contact_address');
         /* Navigation */
         .admin-nav {
             background: #0a192f;
-            /* Darker background */
             border: 1px solid rgba(255, 255, 255, 0.05);
             padding: 15px 30px;
             border-radius: 12px;
@@ -280,20 +279,8 @@ $contactAddress = get_setting($pdo, 'contact_address');
 <body>
     <div class="admin-container">
         <!-- Navigation -->
-        <nav class="admin-nav">
-            <h3><i class="fas fa-cogs"></i> Admin Panel</h3>
-            <ul>
-                <li><a href="index.php" class="active">Dashboard</a></li>
-                <li><a href="services.php">Services</a></li>
-                <li><a href="clients.php">Clients</a></li>
-                <li><a href="about.php">About</a></li>
-                <li><a href="carousel.php">Carousel</a></li>
-                <li><a href="seo.php">SEO</a></li>
-                <li><a href="messages.php">Messages</a></li>
-                <li><a href="analytics.php">Analytics</a></li>
-                <li><a href="logout.php" class="logout-btn"><i class="fas fa-sign-out-alt"></i></a></li>
-            </ul>
-        </nav>
+        <?php $currentPage = 'dashboard';
+        include 'header.php'; ?>
 
         <div class="admin-header">
             <h1>General Settings</h1>

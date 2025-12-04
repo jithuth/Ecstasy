@@ -1,94 +1,73 @@
 <?php
 session_start();
-require_once '../includes/db.php';
-
 if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
     header("location: login.php");
     exit;
 }
 
+require_once '../includes/db.php';
+
 $message = '';
 $editMode = false;
-$slideData = ['id' => '', 'title' => '', 'subtitle' => '', 'sort_order' => 0, 'image' => ''];
+$openingData = ['id' => '', 'title' => '', 'description' => '', 'status' => 'active'];
 
 // Handle Delete
 if (isset($_GET['delete'])) {
     $id = $_GET['delete'];
-    $stmt = $pdo->prepare("DELETE FROM carousel WHERE id = ?");
+    $stmt = $pdo->prepare("DELETE FROM career_openings WHERE id = ?");
     if ($stmt->execute([$id])) {
-        $message = "Slide deleted successfully!";
+        $message = "Opening deleted successfully!";
+    }
+}
+
+// Handle Status Toggle
+if (isset($_GET['toggle'])) {
+    $id = $_GET['toggle'];
+    $stmt = $pdo->prepare("UPDATE career_openings SET status = IF(status='active', 'inactive', 'active') WHERE id = ?");
+    if ($stmt->execute([$id])) {
+        $message = "Status updated successfully!";
     }
 }
 
 // Handle Edit Fetch
 if (isset($_GET['edit'])) {
     $id = $_GET['edit'];
-    $stmt = $pdo->prepare("SELECT * FROM carousel WHERE id = ?");
+    $stmt = $pdo->prepare("SELECT * FROM career_openings WHERE id = ?");
     $stmt->execute([$id]);
-    $fetchedSlide = $stmt->fetch();
-    if ($fetchedSlide) {
+    $fetchedOpening = $stmt->fetch();
+    if ($fetchedOpening) {
         $editMode = true;
-        $slideData = $fetchedSlide;
+        $openingData = $fetchedOpening;
     }
 }
 
 // Handle Add/Update
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $title = $_POST['title'];
-    $subtitle = $_POST['subtitle'];
-    $sort_order = $_POST['sort_order'];
-    $id = $_POST['id'];
-
-    $image = '';
-    if (isset($_FILES['image']) && $_FILES['image']['error'] == 0) {
-        $allowed = ['jpg', 'jpeg', 'png', 'gif'];
-        $filename = $_FILES['image']['name'];
-        $filetype = pathinfo($filename, PATHINFO_EXTENSION);
-
-        if (in_array(strtolower($filetype), $allowed)) {
-            $newFilename = 'slide_' . time() . '.' . $filetype;
-            $uploadPath = '../assets/images/carousel/' . $newFilename;
-
-            if (move_uploaded_file($_FILES['image']['tmp_name'], $uploadPath)) {
-                $image = $newFilename;
-            }
-        }
-    }
+    $description = $_POST['description'];
+    $status = $_POST['status'];
+    $id = $_POST['id'] ?? '';
 
     if (!empty($id)) {
         // Update
-        $sql = "UPDATE carousel SET title = ?, subtitle = ?, sort_order = ?";
-        $params = [$title, $subtitle, $sort_order];
-        if ($image) {
-            $sql .= ", image = ?";
-            $params[] = $image;
-        }
-        $sql .= " WHERE id = ?";
-        $params[] = $id;
-
-        $stmt = $pdo->prepare($sql);
-        if ($stmt->execute($params)) {
-            $message = "Slide updated successfully!";
-            // Reset form
+        $stmt = $pdo->prepare("UPDATE career_openings SET title = ?, description = ?, status = ? WHERE id = ?");
+        if ($stmt->execute([$title, $description, $status, $id])) {
+            $message = "Opening updated successfully!";
             $editMode = false;
-            $slideData = ['id' => '', 'title' => '', 'subtitle' => '', 'sort_order' => 0, 'image' => ''];
+            $openingData = ['id' => '', 'title' => '', 'description' => '', 'status' => 'active'];
         }
     } else {
         // Add
-        if ($image) {
-            $stmt = $pdo->prepare("INSERT INTO carousel (title, subtitle, image, sort_order) VALUES (?, ?, ?, ?)");
-            if ($stmt->execute([$title, $subtitle, $image, $sort_order])) {
-                $message = "Slide added successfully!";
-            }
-        } else {
-            $message = "Please upload an image.";
+        $stmt = $pdo->prepare("INSERT INTO career_openings (title, description, status) VALUES (?, ?, ?)");
+        if ($stmt->execute([$title, $description, $status])) {
+            $message = "Opening added successfully!";
         }
     }
 }
 
-// Fetch Slides
-$stmt = $pdo->query("SELECT * FROM carousel ORDER BY sort_order ASC");
-$slides = $stmt->fetchAll();
+// Fetch Openings
+$stmt = $pdo->query("SELECT * FROM career_openings ORDER BY created_at DESC");
+$openings = $stmt->fetchAll();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -96,10 +75,20 @@ $slides = $stmt->fetchAll();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Carousel - Admin</title>
+    <title>Manage Careers - Admin</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+    <script>
+        tinymce.init({
+            selector: 'textarea[name="description"]',
+            plugins: 'anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount',
+            toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table | align lineheight | numlist bullist indent outdent | emoticons charmap | removeformat',
+            skin: 'oxide-dark',
+            content_css: 'dark'
+        });
+    </script>
     <style>
         :root {
             --glass-bg: rgba(17, 34, 64, 0.7);
@@ -125,7 +114,6 @@ $slides = $stmt->fetchAll();
         /* Navigation */
         .admin-nav {
             background: #0a192f;
-            /* Darker background */
             border: 1px solid rgba(255, 255, 255, 0.05);
             padding: 15px 30px;
             border-radius: 12px;
@@ -248,7 +236,7 @@ $slides = $stmt->fetchAll();
         }
 
         .form-group input,
-        .form-group textarea {
+        .form-group select {
             width: 100%;
             padding: 12px;
             border-radius: 8px;
@@ -260,7 +248,7 @@ $slides = $stmt->fetchAll();
         }
 
         .form-group input:focus,
-        .form-group textarea:focus {
+        .form-group select:focus {
             outline: none;
             border-color: var(--neon-accent);
             box-shadow: 0 0 10px rgba(100, 255, 218, 0.1);
@@ -354,6 +342,23 @@ $slides = $stmt->fetchAll();
             background: rgba(255, 107, 107, 0.2);
         }
 
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background: rgba(100, 255, 218, 0.1);
+            color: var(--neon-accent);
+        }
+
+        .status-inactive {
+            background: rgba(255, 107, 107, 0.1);
+            color: #ff6b6b;
+        }
+
         /* Responsive Nav */
         @media (max-width: 768px) {
             .admin-nav {
@@ -373,13 +378,13 @@ $slides = $stmt->fetchAll();
 <body>
     <div class="admin-container">
         <!-- Navigation -->
-        <?php $currentPage = 'carousel';
+        <?php $currentPage = 'careers';
         include 'header.php'; ?>
 
         <div class="admin-header">
-            <h1>Manage Carousel</h1>
-            <a href="../index.php" target="_blank" class="btn">
-                <i class="fas fa-external-link-alt"></i> View Site
+            <h1>Manage Job Openings</h1>
+            <a href="../careers.php" target="_blank" class="btn">
+                <i class="fas fa-external-link-alt"></i> View Page
             </a>
         </div>
 
@@ -390,42 +395,36 @@ $slides = $stmt->fetchAll();
         <?php endif; ?>
 
         <div class="card">
-            <h2><i class="fas fa-images" style="color: var(--neon-accent); margin-right: 10px;"></i>
-                <?php echo $editMode ? 'Edit Slide' : 'Add New Slide'; ?>
+            <h2><i class="fas fa-<?php echo $editMode ? 'edit' : 'plus-circle'; ?>"
+                    style="color: var(--neon-accent); margin-right: 10px;"></i>
+                <?php echo $editMode ? 'Edit Opening' : 'Add New Opening'; ?>
             </h2>
-            <form action="" method="post" enctype="multipart/form-data">
-                <input type="hidden" name="id" value="<?php echo $slideData['id']; ?>">
+            <form action="" method="post">
+                <input type="hidden" name="id" value="<?php echo $openingData['id']; ?>">
                 <div class="form-group">
-                    <label>Title</label>
-                    <input type="text" name="title" value="<?php echo htmlspecialchars($slideData['title']); ?>"
+                    <label>Job Title</label>
+                    <input type="text" name="title" value="<?php echo htmlspecialchars($openingData['title']); ?>"
                         required>
                 </div>
                 <div class="form-group">
-                    <label>Subtitle</label>
-                    <input type="text" name="subtitle" value="<?php echo htmlspecialchars($slideData['subtitle']); ?>"
-                        required>
+                    <label>Job Description</label>
+                    <textarea name="description"
+                        rows="10"><?php echo htmlspecialchars($openingData['description']); ?></textarea>
                 </div>
                 <div class="form-group">
-                    <label>Sort Order</label>
-                    <input type="number" name="sort_order" value="<?php echo $slideData['sort_order']; ?>" required>
-                </div>
-                <div class="form-group">
-                    <label>Image
-                        <?php echo $editMode ? '(Leave empty to keep current)' : ''; ?>
-                    </label>
-                    <?php if ($editMode && $slideData['image']): ?>
-                        <div style="margin-bottom: 10px;">
-                            <img src="../assets/images/carousel/<?php echo htmlspecialchars($slideData['image']); ?>"
-                                style="width: 100px; border-radius: 4px;">
-                        </div>
-                    <?php endif; ?>
-                    <input type="file" name="image" <?php echo $editMode ? '' : 'required'; ?>>
+                    <label>Status</label>
+                    <select name="status">
+                        <option value="active" <?php echo $openingData['status'] == 'active' ? 'selected' : ''; ?>>Active
+                        </option>
+                        <option value="inactive" <?php echo $openingData['status'] == 'inactive' ? 'selected' : ''; ?>>
+                            Inactive</option>
+                    </select>
                 </div>
                 <button type="submit" class="btn-submit">
-                    <i class="fas fa-save"></i> <?php echo $editMode ? 'Update Slide' : 'Add Slide'; ?>
+                    <i class="fas fa-save"></i> <?php echo $editMode ? 'Update Opening' : 'Post Opening'; ?>
                 </button>
                 <?php if ($editMode): ?>
-                    <a href="carousel.php" class="btn"
+                    <a href="careers.php" class="btn"
                         style="margin-top: 10px; width: 100%; text-align: center; border-color: #8892b0; color: #8892b0;">Cancel
                         Edit</a>
                 <?php endif; ?>
@@ -433,34 +432,39 @@ $slides = $stmt->fetchAll();
         </div>
 
         <div class="card">
-            <h2><i class="fas fa-list" style="color: var(--neon-accent); margin-right: 10px;"></i> Existing Slides</h2>
-            <?php if (count($slides) > 0): ?>
+            <h2><i class="fas fa-list" style="color: var(--neon-accent); margin-right: 10px;"></i> Current Openings</h2>
+            <?php if (count($openings) > 0): ?>
                 <table>
                     <thead>
                         <tr>
-                            <th>Order</th>
-                            <th>Image</th>
                             <th>Title</th>
-                            <th>Subtitle</th>
+                            <th>Status</th>
+                            <th>Posted Date</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($slides as $slide): ?>
+                        <?php foreach ($openings as $opening): ?>
                             <tr>
-                                <td><?php echo $slide['sort_order']; ?></td>
+                                <td><?php echo htmlspecialchars($opening['title']); ?></td>
                                 <td>
-                                    <img src="../assets/images/carousel/<?php echo htmlspecialchars($slide['image']); ?>"
-                                        style="width: 80px; height: 50px; object-fit: cover; border-radius: 4px;">
+                                    <span
+                                        class="status-badge <?php echo $opening['status'] == 'active' ? 'status-active' : 'status-inactive'; ?>">
+                                        <?php echo ucfirst($opening['status']); ?>
+                                    </span>
                                 </td>
-                                <td><?php echo htmlspecialchars($slide['title']); ?></td>
-                                <td><?php echo htmlspecialchars($slide['subtitle']); ?></td>
+                                <td><?php echo date('M d, Y', strtotime($opening['created_at'])); ?></td>
                                 <td>
-                                    <a href="?edit=<?php echo $slide['id']; ?>" class="action-btn edit-btn">
+                                    <a href="?edit=<?php echo $opening['id']; ?>" class="action-btn edit-btn">
                                         <i class="fas fa-edit"></i> Edit
                                     </a>
-                                    <a href="?delete=<?php echo $slide['id']; ?>" class="action-btn delete-btn"
-                                        onclick="return confirm('Are you sure you want to delete this slide?')">
+                                    <a href="?toggle=<?php echo $opening['id']; ?>" class="action-btn edit-btn"
+                                        style="border-color: #8892b0; color: #8892b0;">
+                                        <i class="fas fa-power-off"></i>
+                                        <?php echo $opening['status'] == 'active' ? 'Disable' : 'Enable'; ?>
+                                    </a>
+                                    <a href="?delete=<?php echo $opening['id']; ?>" class="action-btn delete-btn"
+                                        onclick="return confirm('Are you sure you want to delete this opening?')">
                                         <i class="fas fa-trash"></i> Delete
                                     </a>
                                 </td>
@@ -469,7 +473,7 @@ $slides = $stmt->fetchAll();
                     </tbody>
                 </table>
             <?php else: ?>
-                <p style="text-align: center; padding: 20px; color: #8892b0;">No slides found.</p>
+                <p style="text-align: center; padding: 20px; color: #8892b0;">No job openings found.</p>
             <?php endif; ?>
         </div>
     </div>

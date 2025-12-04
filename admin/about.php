@@ -278,25 +278,13 @@ $aboutImage = get_setting($pdo, 'about_image');
 <body>
     <div class="admin-container">
         <!-- Navigation -->
-        <nav class="admin-nav">
-            <h3><i class="fas fa-cogs"></i> Admin Panel</h3>
-            <ul>
-                <li><a href="index.php">Dashboard</a></li>
-                <li><a href="services.php">Services</a></li>
-                <li><a href="clients.php">Clients</a></li>
-                <li><a href="about.php" class="active">About</a></li>
-                <li><a href="carousel.php">Carousel</a></li>
-                <li><a href="seo.php">SEO</a></li>
-                <li><a href="messages.php">Messages</a></li>
-                <li><a href="analytics.php">Analytics</a></li>
-                <li><a href="logout.php" class="logout-btn"><i class="fas fa-sign-out-alt"></i></a></li>
-            </ul>
-        </nav>
+        <?php $currentPage = 'about';
+        include 'header.php'; ?>
 
         <div class="admin-header">
             <h1>About Us Settings</h1>
-            <a href="../index.php" target="_blank" class="btn">
-                <i class="fas fa-external-link-alt"></i> View Site
+            <a href="../index.php#about" target="_blank" class="btn">
+                <i class="fas fa-external-link-alt"></i> View Section
             </a>
         </div>
 
@@ -326,7 +314,6 @@ $aboutImage = get_setting($pdo, 'about_image');
                     <input type="file" name="about_image" style="padding: 10px;">
                 </div>
             </div>
-
             <button type="submit" class="btn-submit">
                 <i class="fas fa-save"></i> Save Changes
             </button>

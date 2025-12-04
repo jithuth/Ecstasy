@@ -255,20 +255,8 @@ $seoKeywords = get_setting($pdo, 'seo_keywords');
 <body>
     <div class="admin-container">
         <!-- Navigation -->
-        <nav class="admin-nav">
-            <h3><i class="fas fa-cogs"></i> Admin Panel</h3>
-            <ul>
-                <li><a href="index.php">Dashboard</a></li>
-                <li><a href="services.php">Services</a></li>
-                <li><a href="clients.php">Clients</a></li>
-                <li><a href="about.php">About</a></li>
-                <li><a href="carousel.php">Carousel</a></li>
-                <li><a href="seo.php" class="active">SEO</a></li>
-                <li><a href="messages.php">Messages</a></li>
-                <li><a href="analytics.php">Analytics</a></li>
-                <li><a href="logout.php" class="logout-btn"><i class="fas fa-sign-out-alt"></i></a></li>
-            </ul>
-        </nav>
+        <?php $currentPage = 'seo';
+        include 'header.php'; ?>
 
         <div class="admin-header">
             <h1>SEO Settings</h1>
@@ -300,7 +288,6 @@ $seoKeywords = get_setting($pdo, 'seo_keywords');
                     <textarea name="seo_keywords" rows="3"><?php echo htmlspecialchars($seoKeywords); ?></textarea>
                 </div>
             </div>
-
             <button type="submit" class="btn-submit">
                 <i class="fas fa-save"></i> Save SEO Settings
             </button>

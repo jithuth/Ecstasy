@@ -56,7 +56,8 @@ $messages = $stmt->fetchAll();
 
         /* Navigation */
         .admin-nav {
-            background: #0a192f; /* Darker background */
+            background: #0a192f;
+            /* Darker background */
             border: 1px solid rgba(255, 255, 255, 0.05);
             padding: 15px 30px;
             border-radius: 12px;
@@ -105,12 +106,12 @@ $messages = $stmt->fetchAll();
             color: var(--neon-accent);
             border: 1px solid rgba(100, 255, 218, 0.2);
         }
-        
+
         .logout-btn {
-             color: #ff6b6b !important;
-             padding: 8px 12px !important;
+            color: #ff6b6b !important;
+            padding: 8px 12px !important;
         }
-        
+
         .logout-btn:hover {
             background: rgba(255, 107, 107, 0.1) !important;
         }
@@ -145,7 +146,8 @@ $messages = $stmt->fetchAll();
             color: #8892b0;
         }
 
-        th, td {
+        th,
+        td {
             padding: 15px;
             text-align: left;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -222,8 +224,15 @@ $messages = $stmt->fetchAll();
         }
 
         @keyframes slideDown {
-            from { transform: translateY(-50px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
         }
 
         .close {
@@ -270,7 +279,7 @@ $messages = $stmt->fetchAll();
             color: #ccd6f6;
             font-size: 15px;
         }
-        
+
         /* Responsive Nav */
         @media (max-width: 768px) {
             .admin-nav {
@@ -290,59 +299,45 @@ $messages = $stmt->fetchAll();
 <body>
     <div class="admin-container">
         <!-- Navigation -->
-        <nav class="admin-nav">
-            <h3><i class="fas fa-cogs"></i> Admin Panel</h3>
-            <ul>
-                <li><a href="index.php">Dashboard</a></li>
-                <li><a href="services.php">Services</a></li>
-                <li><a href="clients.php">Clients</a></li>
-                <li><a href="about.php">About</a></li>
-                <li><a href="carousel.php">Carousel</a></li>
-                <li><a href="seo.php">SEO</a></li>
-                <li><a href="messages.php" class="active">Messages</a></li>
-                <li><a href="analytics.php">Analytics</a></li>
-                <li><a href="logout.php" class="logout-btn"><i class="fas fa-sign-out-alt"></i></a></li>
-            </ul>
-        </nav>
+        <?php $currentPage = 'messages';
+        include 'header.php'; ?>
 
         <div class="admin-header">
             <h1>Messages</h1>
-            <a href="../index.php" target="_blank" class="action-btn view-btn" style="padding: 8px 20px; font-size: 14px;">
-                <i class="fas fa-external-link-alt"></i> View Site
-            </a>
         </div>
 
         <div class="card">
             <?php if (count($messages) > 0): ?>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Subject</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($messages as $msg): ?>
+                <table>
+                    <thead>
                         <tr>
-                            <td><?php echo date('d M Y, h:i A', strtotime($msg['created_at'])); ?></td>
-                            <td><?php echo htmlspecialchars($msg['name']); ?></td>
-                            <td><?php echo htmlspecialchars($msg['email']); ?></td>
-                            <td><?php echo htmlspecialchars($msg['subject']); ?></td>
-                            <td>
-                                <button class="action-btn view-btn" onclick='openModal(<?php echo json_encode($msg); ?>)'>
-                                    <i class="fas fa-eye"></i> View
-                                </button>
-                                <a href="?delete=<?php echo $msg['id']; ?>" class="action-btn delete-btn" onclick="return confirm('Are you sure you want to delete this message?')">
-                                    <i class="fas fa-trash"></i> Delete
-                                </a>
-                            </td>
+                            <th>Date</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Subject</th>
+                            <th>Actions</th>
                         </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($messages as $msg): ?>
+                            <tr>
+                                <td><?php echo date('d M Y, h:i A', strtotime($msg['created_at'])); ?></td>
+                                <td><?php echo htmlspecialchars($msg['name']); ?></td>
+                                <td><?php echo htmlspecialchars($msg['email']); ?></td>
+                                <td><?php echo htmlspecialchars($msg['subject']); ?></td>
+                                <td>
+                                    <button class="action-btn view-btn" onclick='openModal(<?php echo json_encode($msg); ?>)'>
+                                        <i class="fas fa-eye"></i> View
+                                    </button>
+                                    <a href="?delete=<?php echo $msg['id']; ?>" class="action-btn delete-btn"
+                                        onclick="return confirm('Are you sure you want to delete this message?')">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
             <?php else: ?>
                 <p style="text-align: center; padding: 20px; color: #8892b0;">No messages found.</p>
             <?php endif; ?>
@@ -357,23 +352,14 @@ $messages = $stmt->fetchAll();
                 <h2>Message Details</h2>
             </div>
             <div class="modal-body">
-                <p>
-                    <span class="modal-label">Date</span>
-                    <span class="modal-value" id="modalDate"></span>
+                <p><span class="modal-label">Date</span><span class="modal-value" id="modalDate"></span></p>
+                <p><span class="modal-label">From</span><span class="modal-value" id="modalName"></span> (<a
+                        id="modalEmailLink" href="#" style="color: var(--neon-accent);"></a>)</p>
+                <p><span class="modal-label">Subject</span><span class="modal-value" id="modalSubject"></span>
+                    <!-- Added Subject display -->
                 </p>
-                <p>
-                    <span class="modal-label">From</span>
-                    <span class="modal-value" id="modalName"></span> 
-                    (<a id="modalEmailLink" href="#" style="color: var(--neon-accent);"></a>)
-                </p>
-                <p>
-                    <span class="modal-label">Subject</span>
-                    <span class="modal-value" id="modalSubject"></span> <!-- Added Subject display -->
-                </p>
-                <p>
-                    <span class="modal-label">Message</span>
-                    <span class="modal-value" id="modalMessage" style="white-space: pre-wrap;"></span>
-                </p>
+                <p><span class="modal-label">Message</span><span class="modal-value" id="modalMessage"
+                        style="white-space: pre-wrap;"></span></p>
             </div>
         </div>
     </div>
@@ -396,16 +382,16 @@ $messages = $stmt->fetchAll();
 
             document.getElementById("modalDate").textContent = new Date(message.created_at).toLocaleString('en-IN', options);
             document.getElementById("modalName").textContent = message.name;
-            
+
             var emailLink = document.getElementById("modalEmailLink");
             emailLink.textContent = message.email;
             emailLink.href = "mailto:" + message.email;
 
             // Check if subject exists in message object (it should based on table structure)
-            if(message.subject) {
-                 document.getElementById("modalSubject").textContent = message.subject;
+            if (message.subject) {
+                document.getElementById("modalSubject").textContent = message.subject;
             } else {
-                 document.getElementById("modalSubject").textContent = "No Subject";
+                document.getElementById("modalSubject").textContent = "No Subject";
             }
 
             document.getElementById("modalMessage").textContent = message.message;
@@ -419,11 +405,12 @@ $messages = $stmt->fetchAll();
         }
 
         // When the user clicks anywhere outside of the modal, close it
-        window.onclick = function(event) {
+        window.onclick = function (event) {
             if (event.target == modal) {
                 modal.style.display = "none";
             }
         }
     </script>
 </body>
+
 </html>

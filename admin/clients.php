@@ -422,25 +422,13 @@ $clients = $stmt->fetchAll();
 <body>
     <div class="admin-container">
         <!-- Navigation -->
-        <nav class="admin-nav">
-            <h3><i class="fas fa-cogs"></i> Admin Panel</h3>
-            <ul>
-                <li><a href="index.php">Dashboard</a></li>
-                <li><a href="services.php">Services</a></li>
-                <li><a href="clients.php" class="active">Clients</a></li>
-                <li><a href="about.php">About</a></li>
-                <li><a href="carousel.php">Carousel</a></li>
-                <li><a href="seo.php">SEO</a></li>
-                <li><a href="messages.php">Messages</a></li>
-                <li><a href="analytics.php">Analytics</a></li>
-                <li><a href="logout.php" class="logout-btn"><i class="fas fa-sign-out-alt"></i></a></li>
-            </ul>
-        </nav>
+        <?php $currentPage = 'clients';
+        include 'header.php'; ?>
 
         <div class="admin-header">
             <h1>Manage Clients</h1>
-            <a href="../index.php" target="_blank" class="btn">
-                <i class="fas fa-external-link-alt"></i> View Site
+            <a href="../index.php#clients" target="_blank" class="btn">
+                <i class="fas fa-external-link-alt"></i> View Section
             </a>
         </div>
 
@@ -453,7 +441,8 @@ $clients = $stmt->fetchAll();
         <div class="card">
             <h2><i class="fas fa-<?php echo $editMode ? 'edit' : 'plus-circle'; ?>"
                     style="color: var(--neon-accent); margin-right: 10px;"></i>
-                <?php echo $editMode ? 'Edit Client' : 'Add Client'; ?></h2>
+                <?php echo $editMode ? 'Edit Client' : 'Add Client'; ?>
+            </h2>
             <form action="" method="post" enctype="multipart/form-data">
                 <input type="hidden" name="id" value="<?php echo $clientData['id']; ?>">
                 <div class="form-group">
@@ -463,7 +452,8 @@ $clients = $stmt->fetchAll();
                 </div>
                 <div class="form-group">
                     <label>Logo
-                        <?php echo $editMode ? '(Leave empty to keep current)' : '(Optional - Default generated if empty)'; ?></label>
+                        <?php echo $editMode ? '(Leave empty to keep current)' : '(Optional - Default generated if empty)'; ?>
+                    </label>
                     <?php if ($editMode && $clientData['logo']): ?>
                         <div style="margin-bottom: 10px;">
                             <img src="../assets/images/clients/<?php echo htmlspecialchars($clientData['logo']); ?>"
