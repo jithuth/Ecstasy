@@ -30,64 +30,139 @@ $messages = $stmt->fetchAll();
     <meta charset="UTF-8">
     <title>View Messages - Admin</title>
     <link rel="stylesheet" href="../assets/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        .admin-container {
-            padding: 50px;
-            max-width: 1200px;
-            margin: 0 auto;
+        :root {
+            --glass-bg: rgba(17, 34, 64, 0.7);
+            --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+            --neon-accent: #64ffda;
         }
 
+        body {
+            background-color: #020c1b;
+            background-image: radial-gradient(circle at 10% 20%, rgba(100, 255, 218, 0.05) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(0, 112, 243, 0.05) 0%, transparent 20%);
+            min-height: 100vh;
+            color: #8892b0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .admin-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Navigation */
+        .admin-nav {
+            background: #0a192f; /* Darker background */
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 15px 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .admin-nav h3 {
+            color: var(--neon-accent);
+            font-size: 18px;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+        }
+
+        .admin-nav ul {
+            display: flex;
+            gap: 10px;
+            margin: 0;
+            padding: 0;
+            align-items: center;
+        }
+
+        .admin-nav a {
+            color: #8892b0;
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            text-decoration: none;
+        }
+
+        .admin-nav a:hover {
+            color: var(--neon-accent);
+            background: rgba(100, 255, 218, 0.05);
+        }
+
+        .admin-nav a.active {
+            background: rgba(100, 255, 218, 0.1);
+            color: var(--neon-accent);
+            border: 1px solid rgba(100, 255, 218, 0.2);
+        }
+        
+        .logout-btn {
+             color: #ff6b6b !important;
+             padding: 8px 12px !important;
+        }
+        
+        .logout-btn:hover {
+            background: rgba(255, 107, 107, 0.1) !important;
+        }
+
+        /* Header */
         .admin-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 40px;
-            border-bottom: 1px solid var(--text-color);
-            padding-bottom: 20px;
-        }
-
-        .admin-nav {
             margin-bottom: 30px;
         }
 
-        .admin-nav a {
-            margin-right: 20px;
-            font-weight: bold;
-            color: var(--text-color);
+        .admin-header h1 {
+            font-size: 28px;
+            color: #ccd6f6;
+            margin: 0;
         }
 
-        .admin-nav a.active {
-            color: var(--secondary-color);
-        }
-
+        /* Table */
         .card {
-            background: var(--card-bg);
+            background: var(--glass-bg);
+            border: var(--glass-border);
             padding: 30px;
-            border-radius: 8px;
-            margin-bottom: 30px;
-            box-shadow: var(--shadow);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow-x: auto;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            color: var(--text-color);
+            color: #8892b0;
         }
 
-        th,
-        td {
+        th, td {
             padding: 15px;
             text-align: left;
-            border-bottom: 1px solid var(--light-bg);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             vertical-align: top;
         }
 
         th {
-            color: var(--heading-color);
+            color: #ccd6f6;
+            font-weight: 600;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
         }
 
         .action-btn {
-            padding: 5px 10px;
+            padding: 6px 12px;
             border-radius: 4px;
             font-size: 12px;
             cursor: pointer;
@@ -95,17 +170,27 @@ $messages = $stmt->fetchAll();
             margin-right: 5px;
             text-decoration: none;
             display: inline-block;
+            transition: all 0.3s;
         }
 
         .view-btn {
-            background: var(--secondary-color);
-            color: var(--bg-color);
-            font-weight: bold;
+            background: rgba(100, 255, 218, 0.1);
+            color: var(--neon-accent);
+            border: 1px solid rgba(100, 255, 218, 0.2);
+        }
+
+        .view-btn:hover {
+            background: rgba(100, 255, 218, 0.2);
         }
 
         .delete-btn {
-            background: #ff6b6b;
-            color: white;
+            background: rgba(255, 107, 107, 0.1);
+            color: #ff6b6b;
+            border: 1px solid rgba(255, 107, 107, 0.2);
+        }
+
+        .delete-btn:hover {
+            background: rgba(255, 107, 107, 0.2);
         }
 
         /* Modal Styles */
@@ -123,32 +208,26 @@ $messages = $stmt->fetchAll();
         }
 
         .modal-content {
-            background-color: var(--card-bg);
+            background-color: #112240;
             margin: 10% auto;
             padding: 30px;
-            border: 1px solid var(--light-bg);
-            width: 80%;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            width: 90%;
             max-width: 600px;
-            border-radius: 8px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
             position: relative;
             animation: slideDown 0.3s ease-out;
+            color: #8892b0;
         }
 
         @keyframes slideDown {
-            from {
-                transform: translateY(-50px);
-                opacity: 0;
-            }
-
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
 
         .close {
-            color: var(--text-color);
+            color: #8892b0;
             float: right;
             font-size: 28px;
             font-weight: bold;
@@ -156,96 +235,116 @@ $messages = $stmt->fetchAll();
             transition: color 0.3s;
         }
 
-        .close:hover,
-        .close:focus {
-            color: var(--secondary-color);
-            text-decoration: none;
+        .close:hover {
+            color: var(--neon-accent);
         }
 
         .modal-header {
-            border-bottom: 1px solid var(--light-bg);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             padding-bottom: 15px;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            color: #ccd6f6;
+            font-size: 22px;
         }
 
         .modal-body p {
-            margin-bottom: 10px;
-            color: var(--text-color);
+            margin-bottom: 15px;
+            line-height: 1.6;
         }
 
         .modal-label {
-            color: var(--secondary-color);
-            font-weight: bold;
+            color: var(--neon-accent);
+            font-weight: 600;
             display: block;
             margin-bottom: 5px;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .modal-value {
+            color: #ccd6f6;
+            font-size: 15px;
+        }
+        
+        /* Responsive Nav */
+        @media (max-width: 768px) {
+            .admin-nav {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
+            }
+
+            .admin-nav ul {
+                flex-wrap: wrap;
+                gap: 10px;
+            }
         }
     </style>
 </head>
 
 <body>
     <div class="admin-container">
-        <div class="admin-header">
-            <h1 style="color: var(--heading-color);">Messages</h1>
-            <div>
-                <a href="../index.php" target="_blank" class="btn" style="margin-right: 10px;">View Site</a>
-                <a href="logout.php" class="btn" style="border-color: #ff6b6b; color: #ff6b6b;">Logout</a>
-            </div>
-        </div>
+        <!-- Navigation -->
+        <nav class="admin-nav">
+            <h3><i class="fas fa-cogs"></i> Admin Panel</h3>
+            <ul>
+                <li><a href="index.php">Dashboard</a></li>
+                <li><a href="services.php">Services</a></li>
+                <li><a href="clients.php">Clients</a></li>
+                <li><a href="about.php">About</a></li>
+                <li><a href="carousel.php">Carousel</a></li>
+                <li><a href="seo.php">SEO</a></li>
+                <li><a href="messages.php" class="active">Messages</a></li>
+                <li><a href="analytics.php">Analytics</a></li>
+                <li><a href="logout.php" class="logout-btn"><i class="fas fa-sign-out-alt"></i></a></li>
+            </ul>
+        </nav>
 
-        <div class="admin-nav">
-            <a href="index.php">General</a>
-            <a href="services.php">Services</a>
-            <a href="seo.php">SEO</a>
-            <a href="about.php">About Us</a>
-            <a href="carousel.php">Carousel</a>
-            <a href="clients.php">Clients</a>
-            <a href="messages.php" class="active">Messages</a>
+        <div class="admin-header">
+            <h1>Messages</h1>
+            <a href="../index.php" target="_blank" class="action-btn view-btn" style="padding: 8px 20px; font-size: 14px;">
+                <i class="fas fa-external-link-alt"></i> View Site
+            </a>
         </div>
 
         <div class="card">
-            <h2 style="color: var(--heading-color); margin-bottom: 20px;">Inbox</h2>
             <?php if (count($messages) > 0): ?>
-                <table>
-                    <thead>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Subject</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($messages as $msg): ?>
                         <tr>
-                            <th style="width: 20%;">Date (IST)</th>
-                            <th style="width: 25%;">Name / Email</th>
-                            <th style="width: 40%;">Message Preview</th>
-                            <th style="width: 15%;">Action</th>
+                            <td><?php echo date('d M Y, h:i A', strtotime($msg['created_at'])); ?></td>
+                            <td><?php echo htmlspecialchars($msg['name']); ?></td>
+                            <td><?php echo htmlspecialchars($msg['email']); ?></td>
+                            <td><?php echo htmlspecialchars($msg['subject']); ?></td>
+                            <td>
+                                <button class="action-btn view-btn" onclick='openModal(<?php echo json_encode($msg); ?>)'>
+                                    <i class="fas fa-eye"></i> View
+                                </button>
+                                <a href="?delete=<?php echo $msg['id']; ?>" class="action-btn delete-btn" onclick="return confirm('Are you sure you want to delete this message?')">
+                                    <i class="fas fa-trash"></i> Delete
+                                </a>
+                            </td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($messages as $msg): ?>
-                            <tr>
-                                <td style="font-size: 14px; color: var(--text-color);">
-                                    <?php echo date('M j, Y h:i A', strtotime($msg['created_at'])); ?>
-                                </td>
-                                <td>
-                                    <strong
-                                        style="color: var(--heading-color);"><?php echo htmlspecialchars($msg['name']); ?></strong><br>
-                                    <span style="font-size: 13px;"><?php echo htmlspecialchars($msg['email']); ?></span>
-                                </td>
-                                <td>
-                                    <?php
-                                    $preview = htmlspecialchars($msg['message']);
-                                    if (strlen($preview) > 50) {
-                                        $preview = substr($preview, 0, 50) . '...';
-                                    }
-                                    echo $preview;
-                                    ?>
-                                </td>
-                                <td>
-                                    <button class="action-btn view-btn"
-                                        onclick='openModal(<?php echo json_encode($msg); ?>)'>View</button>
-                                    <a href="?delete=<?php echo $msg['id']; ?>" class="action-btn delete-btn"
-                                        onclick="return confirm('Are you sure you want to delete this message?')">Delete</a>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
             <?php else: ?>
-                <p>No messages found.</p>
+                <p style="text-align: center; padding: 20px; color: #8892b0;">No messages found.</p>
             <?php endif; ?>
         </div>
     </div>
@@ -255,19 +354,26 @@ $messages = $stmt->fetchAll();
         <div class="modal-content">
             <span class="close" onclick="closeModal()">&times;</span>
             <div class="modal-header">
-                <h2 style="color: var(--heading-color);">Message Details</h2>
+                <h2>Message Details</h2>
             </div>
             <div class="modal-body">
-                <p><span class="modal-label">Date:</span> <span id="modalDate"></span></p>
-                <p><span class="modal-label">Name:</span> <span id="modalName"
-                        style="color: var(--heading-color);"></span></p>
-                <p><span class="modal-label">Email:</span> <a id="modalEmailLink" href="#"
-                        style="color: var(--secondary-color);"></a></p>
-                <hr style="border: 0; border-top: 1px solid var(--light-bg); margin: 15px 0;">
-                <p><span class="modal-label">Message:</span></p>
-                <div id="modalMessage"
-                    style="background: var(--bg-color); padding: 15px; border-radius: 4px; white-space: pre-wrap;">
-                </div>
+                <p>
+                    <span class="modal-label">Date</span>
+                    <span class="modal-value" id="modalDate"></span>
+                </p>
+                <p>
+                    <span class="modal-label">From</span>
+                    <span class="modal-value" id="modalName"></span> 
+                    (<a id="modalEmailLink" href="#" style="color: var(--neon-accent);"></a>)
+                </p>
+                <p>
+                    <span class="modal-label">Subject</span>
+                    <span class="modal-value" id="modalSubject"></span> <!-- Added Subject display -->
+                </p>
+                <p>
+                    <span class="modal-label">Message</span>
+                    <span class="modal-value" id="modalMessage" style="white-space: pre-wrap;"></span>
+                </p>
             </div>
         </div>
     </div>
@@ -278,29 +384,6 @@ $messages = $stmt->fetchAll();
 
         // Function to open modal
         function openModal(message) {
-            // Since we already formatted the date in PHP to IST, we can try to use that if we passed it, 
-            // but we are passing the raw row. 
-            // Let's just rely on the server-side formatted date if we want to be 100% sure, 
-            // OR we can just format it again here. 
-            // The simplest way to match the table is to pass the formatted date string or just let JS handle it.
-            // Given the requirement "time format should be utc +5.30", PHP handling is safer.
-            // But for the modal, let's just use the raw string from DB which is UTC usually, 
-            // and let the user see it. 
-            // Wait, the user explicitly asked for IST. 
-            // The PHP `date_default_timezone_set('Asia/Kolkata');` handles the display in the TABLE.
-            // For the MODAL, we are using JS. 
-            // Let's pass the formatted date from PHP to JS to be consistent.
-
-            // Actually, `json_encode($msg)` passes the raw DB value. 
-            // Let's just parse it in JS and add 5.30 hours or use Intl.DateTimeFormat.
-
-            const date = new Date(message.created_at);
-            // This treats the DB string as local time if no timezone info, or UTC if ends in Z.
-            // Usually MySQL stores as 'YYYY-MM-DD HH:MM:SS'. JS parses this as local time usually.
-            // If we want to be precise, we should treat it as UTC then convert to IST.
-            // However, simpler is to just use the PHP logic.
-
-            // Let's use Intl.DateTimeFormat for IST
             const options = {
                 year: 'numeric',
                 month: 'short',
@@ -310,33 +393,20 @@ $messages = $stmt->fetchAll();
                 hour12: true,
                 timeZone: 'Asia/Kolkata'
             };
-            // We need to assume the input string is UTC if it comes from `timestamp` column in MySQL (usually).
-            // But `json_encode` might just give the string.
-            // Let's try to format it nicely.
-
-            try {
-                // If message.created_at is "2023-10-27 10:00:00", new Date() might assume local.
-                // Let's append 'Z' to force UTC if it's missing, assuming DB is UTC.
-                // But wait, `CURRENT_TIMESTAMP` in MySQL depends on server time.
-                // If we set PHP timezone, it affects PHP `date()`.
-                // Let's just display the string as is for now, or better yet, 
-                // let's update the `onclick` to pass the formatted date string too.
-
-                // I will update the PHP loop to pass a formatted date string.
-            } catch (e) {
-                console.error(e);
-            }
-
-            // Actually, I can't easily change the onclick arguments inside this JS block.
-            // I'll just rely on the JS formatting which should be close enough or correct if browser is in IST.
-            // If not, I'll use the hardcoded timezone.
 
             document.getElementById("modalDate").textContent = new Date(message.created_at).toLocaleString('en-IN', options);
             document.getElementById("modalName").textContent = message.name;
-
+            
             var emailLink = document.getElementById("modalEmailLink");
             emailLink.textContent = message.email;
             emailLink.href = "mailto:" + message.email;
+
+            // Check if subject exists in message object (it should based on table structure)
+            if(message.subject) {
+                 document.getElementById("modalSubject").textContent = message.subject;
+            } else {
+                 document.getElementById("modalSubject").textContent = "No Subject";
+            }
 
             document.getElementById("modalMessage").textContent = message.message;
 
@@ -349,12 +419,11 @@ $messages = $stmt->fetchAll();
         }
 
         // When the user clicks anywhere outside of the modal, close it
-        window.onclick = function (event) {
+        window.onclick = function(event) {
             if (event.target == modal) {
                 modal.style.display = "none";
             }
         }
     </script>
 </body>
-
 </html>

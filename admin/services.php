@@ -63,7 +63,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 
-// Fetch all services
+// Fetch Services
 $stmt = $pdo->query("SELECT * FROM services ORDER BY created_at DESC");
 $services = $stmt->fetchAll();
 ?>
@@ -72,44 +72,144 @@ $services = $stmt->fetchAll();
 
 <head>
     <meta charset="UTF-8">
-    <title>Manage Services</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Services - Admin</title>
     <link rel="stylesheet" href="../assets/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        .admin-container {
-            padding: 50px;
-            max-width: 1200px;
-            margin: 0 auto;
+        :root {
+            --glass-bg: rgba(17, 34, 64, 0.7);
+            --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+            --neon-accent: #64ffda;
         }
 
+        body {
+            background-color: #020c1b;
+            background-image: radial-gradient(circle at 10% 20%, rgba(100, 255, 218, 0.05) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(0, 112, 243, 0.05) 0%, transparent 20%);
+            min-height: 100vh;
+            color: #8892b0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .admin-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Navigation */
+        .admin-nav {
+            background: #0a192f;
+            /* Darker background */
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 15px 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .admin-nav h3 {
+            color: var(--neon-accent);
+            font-size: 18px;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+        }
+
+        .admin-nav ul {
+            display: flex;
+            gap: 10px;
+            margin: 0;
+            padding: 0;
+            align-items: center;
+        }
+
+        .admin-nav a {
+            color: #8892b0;
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            text-decoration: none;
+        }
+
+        .admin-nav a:hover {
+            color: var(--neon-accent);
+            background: rgba(100, 255, 218, 0.05);
+        }
+
+        .admin-nav a.active {
+            background: rgba(100, 255, 218, 0.1);
+            color: var(--neon-accent);
+            border: 1px solid rgba(100, 255, 218, 0.2);
+        }
+
+        .logout-btn {
+            color: #ff6b6b !important;
+            padding: 8px 12px !important;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255, 107, 107, 0.1) !important;
+        }
+
+        /* Header */
         .admin-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 40px;
-            border-bottom: 1px solid var(--text-color);
-            padding-bottom: 20px;
-        }
-
-        .admin-nav {
             margin-bottom: 30px;
         }
 
-        .admin-nav a {
-            margin-right: 20px;
-            font-weight: bold;
-            color: var(--text-color);
+        .admin-header h1 {
+            font-size: 28px;
+            color: #ccd6f6;
+            margin: 0;
         }
 
-        .admin-nav a.active {
-            color: var(--secondary-color);
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+            border: 1px solid var(--neon-accent);
+            color: var(--neon-accent);
+            background: transparent;
         }
 
+        .btn:hover {
+            background: rgba(100, 255, 218, 0.1);
+        }
+
+        /* Forms */
         .card {
-            background: var(--card-bg);
+            background: var(--glass-bg);
+            border: var(--glass-border);
             padding: 30px;
-            border-radius: 8px;
+            border-radius: 16px;
             margin-bottom: 30px;
-            box-shadow: var(--shadow);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .card h2 {
+            color: #ccd6f6;
+            font-size: 20px;
+            margin-top: 0;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 15px;
         }
 
         .form-group {
@@ -119,92 +219,168 @@ $services = $stmt->fetchAll();
         .form-group label {
             display: block;
             margin-bottom: 8px;
-            color: var(--heading-color);
+            color: var(--neon-accent);
+            font-size: 14px;
+            font-weight: 500;
         }
 
         .form-group input,
         .form-group textarea {
             width: 100%;
-            padding: 10px;
-            border-radius: 4px;
-            border: 1px solid var(--text-color);
-            background: var(--bg-color);
-            color: var(--text-color);
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(2, 12, 27, 0.5);
+            color: #ccd6f6;
             font-family: inherit;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--neon-accent);
+            box-shadow: 0 0 10px rgba(100, 255, 218, 0.1);
+        }
+
+        .btn-submit {
+            background: var(--neon-accent);
+            color: #020c1b;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 6px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            display: block;
+            width: 100%;
+        }
+
+        .btn-submit:hover {
+            background: #4cdbb3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(100, 255, 218, 0.3);
         }
 
         .success-msg {
             background: rgba(100, 255, 218, 0.1);
-            color: var(--secondary-color);
+            color: var(--neon-accent);
             padding: 15px;
-            border-radius: 4px;
+            border-radius: 8px;
             margin-bottom: 20px;
+            border: 1px solid rgba(100, 255, 218, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
+        /* Table */
         table {
             width: 100%;
             border-collapse: collapse;
-            color: var(--text-color);
+            color: #8892b0;
         }
 
         th,
         td {
             padding: 15px;
             text-align: left;
-            border-bottom: 1px solid var(--light-bg);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            vertical-align: top;
         }
 
         th {
-            color: var(--heading-color);
+            color: #ccd6f6;
+            font-weight: 600;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
         }
 
         .action-btn {
-            padding: 5px 10px;
+            padding: 6px 12px;
             border-radius: 4px;
             font-size: 12px;
-            margin-right: 5px;
             cursor: pointer;
+            border: none;
+            margin-right: 5px;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s;
         }
 
         .edit-btn {
-            background: var(--secondary-color);
-            color: var(--bg-color);
-            border: none;
+            background: rgba(100, 255, 218, 0.1);
+            color: var(--neon-accent);
+            border: 1px solid rgba(100, 255, 218, 0.2);
+        }
+
+        .edit-btn:hover {
+            background: rgba(100, 255, 218, 0.2);
         }
 
         .delete-btn {
-            background: #ff6b6b;
-            color: white;
-            border: none;
+            background: rgba(255, 107, 107, 0.1);
+            color: #ff6b6b;
+            border: 1px solid rgba(255, 107, 107, 0.2);
+        }
+
+        .delete-btn:hover {
+            background: rgba(255, 107, 107, 0.2);
+        }
+
+        /* Responsive Nav */
+        @media (max-width: 768px) {
+            .admin-nav {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
+            }
+
+            .admin-nav ul {
+                flex-wrap: wrap;
+                gap: 10px;
+            }
         }
     </style>
 </head>
 
 <body>
     <div class="admin-container">
+        <!-- Navigation -->
+        <nav class="admin-nav">
+            <h3><i class="fas fa-cogs"></i> Admin Panel</h3>
+            <ul>
+                <li><a href="index.php">Dashboard</a></li>
+                <li><a href="services.php" class="active">Services</a></li>
+                <li><a href="clients.php">Clients</a></li>
+                <li><a href="about.php">About</a></li>
+                <li><a href="carousel.php">Carousel</a></li>
+                <li><a href="seo.php">SEO</a></li>
+                <li><a href="messages.php">Messages</a></li>
+                <li><a href="analytics.php">Analytics</a></li>
+                <li><a href="logout.php" class="logout-btn"><i class="fas fa-sign-out-alt"></i></a></li>
+            </ul>
+        </nav>
+
         <div class="admin-header">
-            <h1 style="color: var(--heading-color);">Manage Services</h1>
-            <div>
-                <a href="../index.php" target="_blank" class="btn" style="margin-right: 10px;">View Site</a>
-                <a href="logout.php" class="btn" style="border-color: #ff6b6b; color: #ff6b6b;">Logout</a>
+            <h1>Manage Services</h1>
+            <a href="../index.php" target="_blank" class="btn">
+                <i class="fas fa-external-link-alt"></i> View Site
+            </a>
+        </div>
+
+        <?php if ($message): ?>
+            <div class="success-msg">
+                <i class="fas fa-check-circle"></i> <?php echo $message; ?>
             </div>
-        </div>
-
-        <div class="admin-nav">
-            <a href="index.php">General</a>
-            <a href="services.php" class="active">Services</a>
-            <a href="seo.php">SEO</a>
-            <a href="about.php">About Us</a>
-            <a href="carousel.php">Carousel</a>
-            <a href="clients.php">Clients</a>
-            <a href="messages.php">Messages</a>
-        </div>
-
-        <?php if ($message)
-            echo '<div class="success-msg">' . $message . '</div>'; ?>
+        <?php endif; ?>
 
         <div class="card">
-            <h2 style="color: var(--heading-color); margin-bottom: 20px;">Add New Service</h2>
+            <h2><i class="fas fa-plus-circle" style="color: var(--neon-accent); margin-right: 10px;"></i> Add / Edit
+                Service</h2>
             <form action="" method="post" enctype="multipart/form-data">
                 <input type="hidden" name="id" id="service-id">
                 <div class="form-group">
@@ -219,47 +395,58 @@ $services = $stmt->fetchAll();
                     <label>Image</label>
                     <input type="file" name="image">
                 </div>
-                <button type="submit" class="btn"
-                    style="background: var(--secondary-color); color: var(--bg-color); font-weight: bold;">Save
-                    Service</button>
-                <button type="button" class="btn" onclick="resetForm()" style="margin-left: 10px;">Cancel</button>
+                <button type="submit" class="btn-submit">
+                    <i class="fas fa-save"></i> Save Service
+                </button>
+                <button type="button" class="btn" onclick="resetForm()"
+                    style="margin-top: 10px; width: 100%; text-align: center; border-color: #8892b0; color: #8892b0;">Cancel
+                    / Reset</button>
             </form>
         </div>
 
         <div class="card">
-            <h2 style="color: var(--heading-color); margin-bottom: 20px;">Existing Services</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Image</th>
-                        <th>Title</th>
-                        <th>Description</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($services as $service): ?>
+            <h2><i class="fas fa-list" style="color: var(--neon-accent); margin-right: 10px;"></i> Existing Services
+            </h2>
+            <?php if (count($services) > 0): ?>
+                <table>
+                    <thead>
                         <tr>
-                            <td>
-                                <?php if ($service['image']): ?>
-                                    <img src="../assets/images/services/<?php echo htmlspecialchars($service['image']); ?>"
-                                        width="50" height="50" style="object-fit: cover; border-radius: 4px;">
-                                <?php else: ?>
-                                    No Image
-                                <?php endif; ?>
-                            </td>
-                            <td><?php echo htmlspecialchars($service['title']); ?></td>
-                            <td><?php echo htmlspecialchars(substr($service['description'], 0, 50)) . '...'; ?></td>
-                            <td>
-                                <button class="action-btn edit-btn"
-                                    onclick="editService(<?php echo htmlspecialchars(json_encode($service)); ?>)">Edit</button>
-                                <a href="?delete=<?php echo $service['id']; ?>" class="action-btn delete-btn"
-                                    onclick="return confirm('Are you sure?')">Delete</a>
-                            </td>
+                            <th>Image</th>
+                            <th>Title</th>
+                            <th>Description</th>
+                            <th>Actions</th>
                         </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($services as $service): ?>
+                            <tr>
+                                <td>
+                                    <?php if ($service['image']): ?>
+                                        <img src="../assets/images/services/<?php echo htmlspecialchars($service['image']); ?>"
+                                            style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
+                                    <?php else: ?>
+                                        <span style="color: #8892b0;">No Image</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td><?php echo htmlspecialchars($service['title']); ?></td>
+                                <td><?php echo htmlspecialchars(substr($service['description'], 0, 50)) . '...'; ?></td>
+                                <td>
+                                    <button class="action-btn edit-btn"
+                                        onclick='editService(<?php echo json_encode($service); ?>)'>
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <a href="?delete=<?php echo $service['id']; ?>" class="action-btn delete-btn"
+                                        onclick="return confirm('Are you sure you want to delete this service?')">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php else: ?>
+                <p style="text-align: center; padding: 20px; color: #8892b0;">No services found.</p>
+            <?php endif; ?>
         </div>
     </div>
 
