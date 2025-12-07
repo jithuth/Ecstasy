@@ -3,6 +3,7 @@
     <ul>
         <li><a href="index.php" class="<?php echo ($currentPage == 'dashboard') ? 'active' : ''; ?>">Dashboard</a></li>
         <li><a href="services.php" class="<?php echo ($currentPage == 'services') ? 'active' : ''; ?>">Services</a></li>
+        <li><a href="products.php" class="<?php echo ($currentPage == 'products') ? 'active' : ''; ?>">Products</a></li>
         <li><a href="clients.php" class="<?php echo ($currentPage == 'clients') ? 'active' : ''; ?>">Clients</a></li>
         <li><a href="about.php" class="<?php echo ($currentPage == 'about') ? 'active' : ''; ?>">About</a></li>
         <li><a href="carousel.php" class="<?php echo ($currentPage == 'carousel') ? 'active' : ''; ?>">Carousel</a></li>

@@ -7,130 +7,167 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 
 require_once '../includes/db.php';
 
-// Helper for date range (Default: Last 30 days)
+// --- HELPERS ---
+if (!function_exists('getTrend')) {
+    function getTrend($current, $previous)
+    {
+        if ($previous == 0)
+            return ($current > 0) ? 100 : 0;
+        return round((($current - $previous) / $previous) * 100, 1);
+    }
+}
+
+if (!function_exists('formatTrend')) {
+    function formatTrend($percent)
+    {
+        if ($percent > 0)
+            return '<span class="trend-badge trend-up"><i class="fas fa-arrow-up"></i> ' . $percent . '%</span>';
+        if ($percent < 0)
+            return '<span class="trend-badge trend-down"><i class="fas fa-arrow-down"></i> ' . abs($percent) . '%</span>';
+        return '<span class="trend-badge trend-neutral"><i class="fas fa-minus"></i> 0%</span>';
+    }
+}
+
+// Date Range
 $days = isset($_GET['days']) ? intval($_GET['days']) : 30;
 $startDate = date('Y-m-d H:i:s', strtotime("-$days days"));
+$prevDate = date('Y-m-d H:i:s', strtotime("-" . ($days * 2) . " days"));
 
-// 1. Fetch Overview Stats
-// Total Visitors
-$stmt = $pdo->prepare("SELECT COUNT(*) FROM analytics_visitors WHERE created_at >= ?");
-$stmt->execute([$startDate]);
-$totalVisitors = $stmt->fetchColumn();
-
-// Total Page Views
-$stmt = $pdo->prepare("SELECT COUNT(*) FROM analytics_pageviews WHERE created_at >= ?");
-$stmt->execute([$startDate]);
-$totalPageViews = $stmt->fetchColumn();
-
-// Live Users (Active in last 5 minutes)
-// We count unique visitor_ids from pageviews in the last 5 minutes
-$stmt = $pdo->query("SELECT COUNT(DISTINCT visitor_id) FROM analytics_pageviews WHERE created_at >= NOW() - INTERVAL 5 MINUTE");
-$liveUsers = $stmt->fetchColumn();
-
-// Live Users Breakdown (Mobile vs Desktop)
-$stmt = $pdo->query("
-    SELECT v.device_type, COUNT(DISTINCT p.visitor_id) as count
-    FROM analytics_pageviews p
-    JOIN analytics_visitors v ON p.visitor_id = v.id
-    WHERE p.created_at >= NOW() - INTERVAL 5 MINUTE
-    GROUP BY v.device_type
-");
-$liveStats = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
-
-$liveDesktop = $liveStats['Desktop'] ?? 0;
-$liveMobile = ($liveStats['Mobile'] ?? 0) + ($liveStats['Tablet'] ?? 0);
-
-// 2. Fetch Chart Data (Visitors per Day)
-$stmt = $pdo->prepare("
-    SELECT DATE(created_at) as date, COUNT(*) as count 
-    FROM analytics_pageviews 
-    WHERE created_at >= ? 
-    GROUP BY DATE(created_at) 
-    ORDER BY date ASC
-");
-$stmt->execute([$startDate]);
-$chartData = $stmt->fetchAll();
+// Initialize variables to default values to prevent undefined variable errors
+$totalVisitors = 0;
+$visitorTrend = 0;
+$totalPageViews = 0;
+$viewTrend = 0;
+$bounceRate = 0;
+$liveUsers = 0;
 
 $dates = [];
 $counts = [];
-foreach ($chartData as $row) {
-    $dates[] = $row['date'];
-    $counts[] = $row['count'];
-}
+$dowLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+$dowCounts = array_fill(0, 7, 0);
+$hourlyLabels = [];
+$hourlyCounts = array_fill(0, 24, 0);
 
-// 3. Fetch Top Pages
-$stmt = $pdo->prepare("
-    SELECT page_title, page_url, COUNT(*) as views 
-    FROM analytics_pageviews 
-    WHERE created_at >= ? 
-    GROUP BY page_url 
-    ORDER BY views DESC 
-    LIMIT 10
-");
-$stmt->execute([$startDate]);
-$topPages = $stmt->fetchAll();
-
-// 4. Fetch Top Countries
-$stmt = $pdo->prepare("
-    SELECT country, COUNT(*) as count 
-    FROM analytics_visitors 
-    WHERE created_at >= ? 
-    GROUP BY country 
-    ORDER BY count DESC 
-    LIMIT 5
-");
-$stmt->execute([$startDate]);
-$topCountries = $stmt->fetchAll();
-
-// 5. Fetch Device Stats
-$stmt = $pdo->prepare("
-    SELECT device_type, COUNT(*) as count 
-    FROM analytics_visitors 
-    WHERE created_at >= ? 
-    GROUP BY device_type 
-    ORDER BY count DESC
-");
-$stmt->execute([$startDate]);
-$deviceStats = $stmt->fetchAll();
-
-$deviceLabels = [];
-$deviceCounts = [];
-foreach ($deviceStats as $row) {
-    $deviceLabels[] = $row['device_type'];
-    $deviceCounts[] = $row['count'];
-}
-
-// 6. Fetch OS Stats
-$stmt = $pdo->prepare("
-    SELECT os, COUNT(*) as count 
-    FROM analytics_visitors 
-    WHERE created_at >= ? 
-    GROUP BY os 
-    ORDER BY count DESC
-");
-$stmt->execute([$startDate]);
-$osStats = $stmt->fetchAll();
-
+$topPages = [];
+$topCountries = [];
+$trafficSources = [];
+$browserLabels = [];
+$browserCounts = [];
 $osLabels = [];
 $osCounts = [];
-foreach ($osStats as $row) {
-    $osLabels[] = $row['os'];
-    $osCounts[] = $row['count'];
-}
 
-// Export Logic
-if (isset($_GET['export']) && $_GET['export'] == 'csv') {
-    header('Content-Type: text/csv');
-    header('Content-Disposition: attachment; filename="analytics_report.csv"');
-    $output = fopen('php://output', 'w');
-    fputcsv($output, ['Page Title', 'URL', 'Views']);
-    foreach ($topPages as $page) {
-        fputcsv($output, [$page['page_title'], $page['page_url'], $page['views']]);
+try {
+    // --- 1. KEY METRICS WITH COMPARISON ---
+
+    // Total Visitors (Current vs Previous)
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM analytics_visitors WHERE created_at >= ?");
+    $stmt->execute([$startDate]);
+    $totalVisitors = $stmt->fetchColumn();
+
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM analytics_visitors WHERE created_at >= ? AND created_at < ?");
+    $stmt->execute([$prevDate, $startDate]);
+    $prevVisitors = $stmt->fetchColumn();
+    $visitorTrend = getTrend($totalVisitors, $prevVisitors);
+
+    // Total Page Views
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM analytics_pageviews WHERE created_at >= ?");
+    $stmt->execute([$startDate]);
+    $totalPageViews = $stmt->fetchColumn();
+
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM analytics_pageviews WHERE created_at >= ? AND created_at < ?");
+    $stmt->execute([$prevDate, $startDate]);
+    $prevPageViews = $stmt->fetchColumn();
+    $viewTrend = getTrend($totalPageViews, $prevPageViews);
+
+    // Bounce Rate
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM (SELECT visitor_id FROM analytics_pageviews WHERE created_at >= ? GROUP BY visitor_id HAVING COUNT(*) = 1) as t");
+    $stmt->execute([$startDate]);
+    $bounceCount = $stmt->fetchColumn();
+    $bounceRate = ($totalVisitors > 0) ? round(($bounceCount / $totalVisitors) * 100, 1) : 0;
+
+    // Live Users
+    $stmt = $pdo->query("SELECT COUNT(DISTINCT visitor_id) FROM analytics_pageviews WHERE created_at >= NOW() - INTERVAL 5 MINUTE");
+    $liveUsers = $stmt->fetchColumn();
+
+    // --- 2. ADVANCED CHARTS DATA ---
+
+    // Traffic Trend (Daily)
+    $stmt = $pdo->prepare("SELECT DATE(created_at) as date, COUNT(*) as count FROM analytics_pageviews WHERE created_at >= ? GROUP BY DATE(created_at) ORDER BY date ASC");
+    $stmt->execute([$startDate]);
+    $chartData = $stmt->fetchAll();
+    foreach ($chartData as $row) {
+        $dates[] = date('M j', strtotime($row['date']));
+        $counts[] = $row['count'];
     }
-    fclose($output);
-    exit;
-}
 
+    // Day of Week Analysis
+    $stmt = $pdo->prepare("SELECT DAYOFWEEK(created_at) as dw, COUNT(*) as count FROM analytics_pageviews WHERE created_at >= ? GROUP BY dw");
+    $stmt->execute([$startDate]);
+    $dowData = $stmt->fetchAll();
+    foreach ($dowData as $row) {
+        // Adjust index: MySQL 1(Sun) -> Array 6, MySQL 2(Mon) -> Array 0
+        $idx = ($row['dw'] == 1) ? 6 : $row['dw'] - 2;
+        if (isset($dowCounts[$idx]))
+            $dowCounts[$idx] = $row['count'];
+    }
+
+    // Hourly Analysis
+    for ($i = 0; $i < 24; $i++)
+        $hourlyLabels[] = date("g A", strtotime("$i:00"));
+
+    $stmt = $pdo->prepare("SELECT HOUR(created_at) as hr, COUNT(*) as count FROM analytics_pageviews WHERE created_at >= ? GROUP BY hr");
+    $stmt->execute([$startDate]);
+    $hData = $stmt->fetchAll();
+    // Reset to keyed array to fill
+    $hourlyCountsVal = array_fill(0, 24, 0);
+    foreach ($hData as $row) {
+        $hourlyCountsVal[$row['hr']] = $row['count'];
+    }
+    $hourlyCounts = $hourlyCountsVal;
+
+    // --- 3. DETAILED LISTS ---
+
+    // Top Pages
+    $stmt = $pdo->prepare("SELECT page_title, page_url, COUNT(*) as views FROM analytics_pageviews WHERE created_at >= ? GROUP BY page_url ORDER BY views DESC LIMIT 15");
+    $stmt->execute([$startDate]);
+    $topPages = $stmt->fetchAll();
+
+    // Top Countries
+    $stmt = $pdo->prepare("SELECT country, COUNT(*) as count FROM analytics_visitors WHERE created_at >= ? GROUP BY country ORDER BY count DESC LIMIT 10");
+    $stmt->execute([$startDate]);
+    $topCountries = $stmt->fetchAll();
+
+    // Referrers
+    $stmt = $pdo->prepare("SELECT referrer, COUNT(*) as count FROM analytics_pageviews WHERE created_at >= ? GROUP BY referrer ORDER BY count DESC LIMIT 10");
+    $stmt->execute([$startDate]);
+    $referrersData = $stmt->fetchAll();
+    foreach ($referrersData as $row) {
+        $ref = $row['referrer'];
+        $source = empty($ref) ? 'Direct' : (parse_url($ref, PHP_URL_HOST) ?? 'Unknown');
+        $trafficSources[$source] = ($trafficSources[$source] ?? 0) + $row['count'];
+    }
+    arsort($trafficSources);
+    $trafficSources = array_slice($trafficSources, 0, 8);
+
+    // Browsers
+    $stmt = $pdo->prepare("SELECT browser, COUNT(*) as count FROM analytics_visitors WHERE created_at >= ? GROUP BY browser ORDER BY count DESC");
+    $stmt->execute([$startDate]);
+    $browserStats = $stmt->fetchAll();
+    $browserLabels = array_column($browserStats, 'browser');
+    $browserCounts = array_column($browserStats, 'count');
+
+    // OS
+    $stmt = $pdo->prepare("SELECT os, COUNT(*) as count FROM analytics_visitors WHERE created_at >= ? GROUP BY os ORDER BY count DESC");
+    $stmt->execute([$startDate]);
+    $osStats = $stmt->fetchAll();
+    $osLabels = array_column($osStats, 'os');
+    $osCounts = array_column($osStats, 'count');
+
+} catch (Throwable $e) {
+    // In case of error (DB down, syntax, etc), variables are already initialized to defaults.
+    // Ensure hourlyCounts is just values for chart js
+    $hourlyCounts = array_values($hourlyCounts);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -138,672 +175,618 @@ if (isset($_GET['export']) && $_GET['export'] == 'csv') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analytics Dashboard</title>
+    <title>Deep Analytics Dashboard</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --glass-bg: rgba(17, 34, 64, 0.7);
-            --glass-border: 1px solid rgba(255, 255, 255, 0.1);
-            --neon-accent: #64ffda;
+            --bg-dark: #020c1b;
+            --card-bg: #0a192f;
+            --text-main: #e6f1ff;
+            --text-muted: #8892b0;
+            --neon-green: #64ffda;
+            --neon-blue: #57cbff;
+            --neon-pink: #bd34fe;
+            --border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         body {
-            background-color: #020c1b;
-            background-image: radial-gradient(circle at 10% 20%, rgba(100, 255, 218, 0.05) 0%, transparent 20%),
-                radial-gradient(circle at 90% 80%, rgba(0, 112, 243, 0.05) 0%, transparent 20%);
-            min-height: 100vh;
-            color: #8892b0;
+            background-color: var(--bg-dark);
             font-family: 'Inter', sans-serif;
+            color: var(--text-muted);
+            margin: 0;
+            padding-bottom: 50px;
         }
 
         .admin-container {
-            max-width: 1400px;
+            max-width: 1440px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 30px;
         }
 
-        /* Navigation */
-        .admin-nav {
-            background: #0a192f;
-            /* Darker background */
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            padding: 15px 30px;
+        /* HEADER */
+        .header-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+            background: var(--card-bg);
+            padding: 20px 30px;
             border-radius: 12px;
-            margin-bottom: 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            border: var(--border);
+            box-shadow: 0 10px 30px -10px rgba(2, 12, 27, 0.7);
         }
 
-        .admin-nav h3 {
-            color: var(--neon-accent);
-            font-size: 18px;
+        .header-title h1 {
+            color: var(--text-main);
+            font-size: 22px;
             margin: 0;
-            display: flex;
-            align-items: center;
-            gap: 10px;
             font-weight: 700;
+            letter-spacing: -0.5px;
         }
 
-        .admin-nav ul {
+        .header-title p {
+            margin: 5px 0 0;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .filter-group {
             display: flex;
-            gap: 10px;
-            margin: 0;
-            padding: 0;
-            align-items: center;
-        }
-
-        .admin-nav a {
-            color: #8892b0;
-            font-weight: 500;
-            padding: 8px 16px;
-            border-radius: 6px;
-            transition: all 0.3s ease;
-            font-size: 14px;
-            text-decoration: none;
-        }
-
-        .admin-nav a:hover {
-            color: var(--neon-accent);
-            background: rgba(100, 255, 218, 0.05);
-        }
-
-        .admin-nav a.active {
-            background: rgba(100, 255, 218, 0.1);
-            color: var(--neon-accent);
-            border: 1px solid rgba(100, 255, 218, 0.2);
-        }
-
-        .logout-btn {
-            color: #ff6b6b !important;
-            padding: 8px 12px !important;
-        }
-
-        .logout-btn:hover {
-            background: rgba(255, 107, 107, 0.1) !important;
-        }
-
-        /* Header Actions */
-        .header-actions {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
-            gap: 20px;
-        }
-
-        .header-actions h1 {
-            font-size: 28px;
-            color: var(--heading-color);
-            margin: 0;
-        }
-
-        .date-filters {
-            background: var(--glass-bg);
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.03);
             padding: 5px;
             border-radius: 8px;
-            border: var(--glass-border);
-            display: flex;
-            gap: 5px;
         }
 
         .filter-btn {
             padding: 8px 16px;
             border-radius: 6px;
-            color: var(--text-color);
+            color: var(--text-muted);
+            font-size: 13px;
             text-decoration: none;
-            font-size: 13px;
+            transition: all 0.2s;
             font-weight: 500;
-            transition: all 0.3s;
         }
 
-        .filter-btn.active,
         .filter-btn:hover {
-            background: var(--neon-accent);
-            color: #020c1b;
-            font-weight: 600;
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.05);
         }
 
-        .export-btn {
-            background: transparent;
-            border: 1px solid var(--neon-accent);
-            color: var(--neon-accent);
-            padding: 8px 20px;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: 600;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .export-btn:hover {
+        .filter-btn.active {
             background: rgba(100, 255, 218, 0.1);
-            transform: translateY(-2px);
+            color: var(--neon-green);
+            font-weight: 600;
         }
 
-        /* Stats Grid */
-        .stats-grid {
+        /* GRID SYSTEM */
+        .grid-4 {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 25px;
-            margin-bottom: 30px;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+            margin-bottom: 24px;
         }
 
-        .stat-card {
-            background: var(--glass-bg);
-            border: var(--glass-border);
-            padding: 25px;
-            border-radius: 16px;
-            position: relative;
-            overflow: hidden;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-bottom: 24px;
         }
 
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            border-color: rgba(100, 255, 218, 0.3);
-        }
-
-        .stat-icon {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            font-size: 24px;
-            color: rgba(136, 146, 176, 0.2);
-            transition: all 0.3s;
-        }
-
-        .stat-card:hover .stat-icon {
-            color: var(--neon-accent);
-            transform: scale(1.1);
-        }
-
-        .stat-number {
-            font-size: 32px;
-            font-weight: 700;
-            color: var(--heading-color);
-            margin: 10px 0 5px;
-        }
-
-        .stat-label {
-            color: var(--text-color);
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .trend-indicator {
-            font-size: 12px;
-            color: var(--neon-accent);
-            margin-top: 10px;
-            display: inline-block;
-            background: rgba(100, 255, 218, 0.1);
-            padding: 2px 8px;
-            border-radius: 10px;
-        }
-
-        /* Live Indicator */
-        .live-dot {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            background-color: #ff6b6b;
-            border-radius: 50%;
-            margin-right: 5px;
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-            0% {
-                transform: scale(0.95);
-                box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.7);
-            }
-
-            70% {
-                transform: scale(1);
-                box-shadow: 0 0 0 10px rgba(255, 107, 107, 0);
-            }
-
-            100% {
-                transform: scale(0.95);
-                box-shadow: 0 0 0 0 rgba(255, 107, 107, 0);
-            }
-        }
-
-        /* Charts & Tables */
-        .dashboard-grid {
+        .grid-2 {
             display: grid;
             grid-template-columns: 2fr 1fr;
-            gap: 25px;
-            margin-bottom: 30px;
+            gap: 24px;
+            margin-bottom: 24px;
         }
 
-        .charts-row {
+        .grid-1-1 {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 25px;
-            margin-bottom: 30px;
+            gap: 24px;
+            margin-bottom: 24px;
         }
 
-        @media (max-width: 1024px) {
+        @media(max-width: 1200px) {
 
-            .dashboard-grid,
-            .charts-row {
+            .grid-4,
+            .grid-3 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .grid-2 {
                 grid-template-columns: 1fr;
             }
         }
 
-        .chart-container {
-            background: var(--glass-bg);
-            border: var(--glass-border);
-            padding: 25px;
-            border-radius: 16px;
-            height: 400px;
-            position: relative;
-            width: 100%;
-        }
+        @media(max-width: 768px) {
 
-        .donut-container {
-            background: var(--glass-bg);
-            border: var(--glass-border);
-            padding: 25px;
-            border-radius: 16px;
-            height: 350px;
-            position: relative;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-        }
+            .grid-4,
+            .grid-3,
+            .grid-1-1 {
+                grid-template-columns: 1fr;
+            }
 
-        .donut-wrapper {
-            flex: 1;
-            position: relative;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .table-container {
-            background: var(--glass-bg);
-            border: var(--glass-border);
-            padding: 25px;
-            border-radius: 16px;
-            height: 100%;
-            overflow: hidden;
-        }
-
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .section-header h3 {
-            color: var(--heading-color);
-            font-size: 18px;
-            margin: 0;
-        }
-
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .data-table th {
-            text-align: left;
-            padding: 12px;
-            color: var(--text-color);
-            font-size: 13px;
-            font-weight: 600;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .data-table td {
-            padding: 15px 12px;
-            color: var(--heading-color);
-            font-size: 14px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .data-table tr:last-child td {
-            border-bottom: none;
-        }
-
-        .data-table tr:hover td {
-            background: rgba(255, 255, 255, 0.02);
-        }
-
-        .page-url {
-            font-size: 12px;
-            color: var(--text-color);
-            max-width: 200px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        /* Responsive Nav */
-        @media (max-width: 768px) {
-            .admin-nav {
+            .header-section {
                 flex-direction: column;
                 gap: 15px;
                 align-items: flex-start;
             }
+        }
 
-            .admin-nav ul {
-                flex-wrap: wrap;
-                gap: 10px;
-            }
+        /* CARDS */
+        .card {
+            background: var(--card-bg);
+            border: var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            box-shadow: 0 10px 30px -15px rgba(2, 12, 27, 0.7);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
 
-            .header-actions {
-                flex-direction: column;
-                align-items: flex-start;
-            }
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px -15px rgba(2, 12, 27, 0.8);
+            border-color: rgba(100, 255, 218, 0.2);
+        }
+
+        .h-350 {
+            height: 350px;
+        }
+
+        /* KPI STYLES */
+        .kpi-icon {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            font-size: 20px;
+            color: rgba(136, 146, 176, 0.3);
+        }
+
+        .kpi-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+
+        .kpi-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text-main);
+            letter-spacing: -1px;
+            margin-bottom: 8px;
+        }
+
+        .trend-badge {
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+
+        .trend-up {
+            background: rgba(100, 255, 218, 0.1);
+            color: var(--neon-green);
+        }
+
+        .trend-down {
+            background: rgba(255, 107, 107, 0.1);
+            color: #ff6b6b;
+        }
+
+        .trend-neutral {
+            background: rgba(136, 146, 176, 0.1);
+            color: var(--text-muted);
+        }
+
+        /* CHARTS */
+        .chart-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .chart-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            width: 100%;
+            flex: 1;
+            overflow: hidden;
+            /* display: flex; REMOVED to fix canvas resize */
+            /* justify-content: center; */
+        }
+
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        /* TABLES */
+        .table-wrapper {
+            overflow-x: auto;
+            flex: 1;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        th {
+            text-align: left;
+            padding: 12px 15px;
+            color: var(--text-muted);
+            font-weight: 600;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 12px 15px;
+            color: var(--text-main);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            vertical-align: middle;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .progress-track {
+            background: rgba(255, 255, 255, 0.08);
+            height: 6px;
+            border-radius: 3px;
+            width: 80px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            border-radius: 3px;
+        }
+
+        .text-neon {
+            color: var(--neon-green);
+            font-weight: 600;
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+        /* SCROLLBAR */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(136, 146, 176, 0.3);
+            border-radius: 3px;
         }
     </style>
 </head>
 
 <body>
     <div class="admin-container">
-        <!-- Navigation -->
         <?php $currentPage = 'analytics';
         include 'header.php'; ?>
 
-        <div class="header-actions">
-            <div>
+        <!-- HEADER -->
+        <div class="header-section">
+            <div class="header-title">
                 <h1>Analytics Dashboard</h1>
-                <p style="color: var(--text-color); margin-top: 5px;">Track your website performance and growth.</p>
+                <p>Real-time insights and performance metrics.</p>
             </div>
-            <div style="display: flex; gap: 15px; align-items: center;">
-                <div class="date-filters">
-                    <a href="?days=7" class="filter-btn <?php echo $days == 7 ? 'active' : ''; ?>">7 Days</a>
-                    <a href="?days=30" class="filter-btn <?php echo $days == 30 ? 'active' : ''; ?>">30 Days</a>
-                </div>
-                <a href="?export=csv" class="export-btn">
-                    <i class="fas fa-download"></i> Export
-                </a>
+            <div class="filter-group">
+                <a href="?days=7" class="filter-btn <?php echo $days == 7 ? 'active' : ''; ?>">7 Days</a>
+                <a href="?days=30" class="filter-btn <?php echo $days == 30 ? 'active' : ''; ?>">30 Days</a>
+                <a href="?days=90" class="filter-btn <?php echo $days == 90 ? 'active' : ''; ?>">90 Days</a>
             </div>
         </div>
 
-        <!-- Stats Cards -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <i class="fas fa-users stat-icon"></i>
-                <div class="stat-label">Total Visitors</div>
-                <div class="stat-number"><?php echo number_format($totalVisitors); ?></div>
-                <div class="trend-indicator"><i class="fas fa-arrow-up"></i> Unique Users</div>
+        <!-- KPI ROW -->
+        <div class="grid-4">
+            <div class="card">
+                <i class="fas fa-users kpi-icon"></i>
+                <div class="kpi-label">Total Visitors</div>
+                <div class="kpi-value"><?php echo number_format($totalVisitors); ?></div>
+                <div><?php echo formatTrend($visitorTrend); ?></div>
             </div>
-            <div class="stat-card">
-                <i class="fas fa-eye stat-icon"></i>
-                <div class="stat-label">Page Views</div>
-                <div class="stat-number"><?php echo number_format($totalPageViews); ?></div>
-                <div class="trend-indicator"><i class="fas fa-chart-bar"></i> Total Impressions</div>
+            <div class="card">
+                <i class="fas fa-eye kpi-icon"></i>
+                <div class="kpi-label">Page Views</div>
+                <div class="kpi-value"><?php echo number_format($totalPageViews); ?></div>
+                <div><?php echo formatTrend($viewTrend); ?></div>
             </div>
-            <div class="stat-card">
-                <i class="fas fa-bolt stat-icon" style="color: #ff6b6b;"></i>
-                <div class="stat-label">Live Users</div>
-                <div class="stat-number">
-                    <span class="live-dot"></span> <?php echo number_format($liveUsers); ?>
-                </div>
-                <div class="trend-indicator" style="color: #ff6b6b; background: rgba(255, 107, 107, 0.1);">
-                    <span style="margin-right: 10px;"><i class="fas fa-desktop"></i> Web:
-                        <?php echo $liveDesktop; ?></span>
-                    <span><i class="fas fa-mobile-alt"></i> Mobile: <?php echo $liveMobile; ?></span>
+            <div class="card">
+                <i class="fas fa-clock kpi-icon"></i>
+                <div class="kpi-label">Bounce Rate</div>
+                <div class="kpi-value"><?php echo $bounceRate; ?>%</div>
+                <div class="trend-badge trend-neutral">Approximate</div>
+            </div>
+            <div class="card">
+                <i class="fas fa-bolt kpi-icon"></i>
+                <div class="kpi-label">Live Users</div>
+                <div class="kpi-value"><?php echo number_format($liveUsers); ?></div>
+                <div class="trend-badge trend-up" style="background: rgba(189, 52, 254, 0.1); color: #bd34fe;">Last 5
                 </div>
             </div>
         </div>
 
-        <!-- Main Content Grid -->
-        <div class="dashboard-grid">
-            <!-- Main Chart -->
-            <div class="chart-container">
-                <div class="section-header">
-                    <h3><i class="fas fa-chart-area" style="color: var(--neon-accent); margin-right: 10px;"></i> Traffic
-                        Overview</h3>
+        <!-- MAIN CHARTS -->
+        <div class="grid-3">
+            <div class="card h-350" style="grid-column: span 2;">
+                <div class="chart-header">
+                    <div class="chart-title"><i class="fas fa-chart-area" style="color:var(--neon-green)"></i> Traffic
+                        Overview</div>
                 </div>
-                <canvas id="trafficChart"></canvas>
+                <div class="chart-wrapper"><canvas id="trafficChart"></canvas></div>
             </div>
-
-            <!-- Top Countries (Side Panel) -->
-            <div class="table-container">
-                <div class="section-header">
-                    <h3><i class="fas fa-globe" style="color: #ffbd2e; margin-right: 10px;"></i> Top Countries</h3>
+            <div class="card h-350">
+                <div class="chart-header">
+                    <div class="chart-title"><i class="fas fa-calendar-alt" style="color:var(--neon-blue)"></i> Peak
+                        Days</div>
                 </div>
-                <div style="overflow-x: auto;">
-                    <table class="data-table">
+                <div class="chart-wrapper"><canvas id="dowChart"></canvas></div>
+            </div>
+        </div>
+
+        <!-- SECOND ROW CHARTS -->
+        <div class="grid-3">
+            <div class="card h-350" style="grid-column: span 2;">
+                <div class="chart-header">
+                    <div class="chart-title"><i class="fas fa-clock" style="color:#ffbd2e"></i> Hourly Heatmap</div>
+                </div>
+                <div class="chart-wrapper"><canvas id="hourlyChart"></canvas></div>
+            </div>
+            <div class="card h-350" style="padding:0;">
+                <div style="padding: 24px; padding-bottom:10px;" class="chart-title"><i class="fas fa-globe"
+                        style="color:#ff6b6b"></i> Top Countries</div>
+                <div class="table-wrapper" style="padding: 0 24px 24px;">
+                    <table>
                         <thead>
                             <tr>
                                 <th>Country</th>
-                                <th>Visitors</th>
+                                <th>Visits</th>
+                                <th>%</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <?php if (count($topCountries) > 0): ?>
-                                <?php foreach ($topCountries as $country): ?>
-                                    <tr>
-                                        <td>
-                                            <div style="font-weight: 600; color: var(--heading-color);">
-                                                <?php echo htmlspecialchars($country['country']); ?>
-                                            </div>
-                                        </td>
-                                        <td style="color: var(--neon-accent); font-weight: bold;">
-                                            <?php echo number_format($country['count']); ?>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php else: ?>
+                            <?php foreach ($topCountries as $c):
+                                $pct = ($totalVisitors > 0) ? ($c['count'] / $totalVisitors) * 100 : 0; ?>
                                 <tr>
-                                    <td colspan="2" style="text-align: center; padding: 20px;">No data yet.</td>
+                                    <td><?php echo htmlspecialchars($c['country']); ?></td>
+                                    <td class="text-neon"><?php echo number_format($c['count']); ?></td>
+                                    <td>
+                                        <div style="display:flex; align-items:center; gap:8px;">
+                                            <div class="progress-track">
+                                                <div class="progress-bar"
+                                                    style="width:<?php echo $pct; ?>%; background: #ff6b6b;"></div>
+                                            </div>
+                                        </div>
+                                    </td>
                                 </tr>
-                            <?php endif; ?>
+                            <?php endforeach; ?>
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
 
-        <!-- Device & OS Charts Row -->
-        <div class="charts-row">
-            <!-- Device Chart -->
-            <div class="donut-container">
-                <div class="section-header">
-                    <h3><i class="fas fa-mobile-alt" style="color: #ff6b6b; margin-right: 10px;"></i> Device Breakdown
-                    </h3>
-                </div>
-                <div class="donut-wrapper">
-                    <canvas id="deviceChart"></canvas>
-                </div>
+        <!-- TECH SPECS ROW -->
+        <div class="grid-3">
+            <div class="card h-350">
+                <div class="chart-title" style="margin-bottom:20px;">Browsers</div>
+                <div class="chart-wrapper"><canvas id="browserChart"></canvas></div>
             </div>
-
-            <!-- OS Chart -->
-            <div class="donut-container">
-                <div class="section-header">
-                    <h3><i class="fas fa-desktop" style="color: #4cc9f0; margin-right: 10px;"></i> Operating Systems
-                    </h3>
-                </div>
-                <div class="donut-wrapper">
-                    <canvas id="osChart"></canvas>
+            <div class="card h-350">
+                <div class="chart-title" style="margin-bottom:20px;">OS</div>
+                <div class="chart-wrapper"><canvas id="osChart"></canvas></div>
+            </div>
+            <div class="card h-350" style="padding:0;">
+                <div style="padding:24px 24px 10px;" class="chart-title">Top Sources</div>
+                <div class="table-wrapper" style="padding: 0 24px 24px;">
+                    <table>
+                        <tbody>
+                            <?php foreach ($trafficSources as $src => $cnt): ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars($src); ?></td>
+                                    <td class="text-neon" style="text-align:right;"><?php echo $cnt; ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
 
-        <!-- Top Pages (Full Width) -->
-        <div class="table-container" style="margin-bottom: 30px;">
-            <div class="section-header">
-                <h3><i class="fas fa-file-alt" style="color: #64ffda; margin-right: 10px;"></i> Most Visited Pages</h3>
-            </div>
-            <div style="overflow-x: auto;">
-                <table class="data-table">
+        <!-- CONTENT TABLE -->
+        <div class="card" style="padding:0;">
+            <div style="padding:24px;" class="chart-title"><i class="fas fa-file-alt" style="color:#bd34fe"></i> Most
+                Viewed Content</div>
+            <div class="table-wrapper" style="padding: 0 24px 24px;">
+                <table>
                     <thead>
                         <tr>
-                            <th style="width: 60%;">Page Title / URL</th>
-                            <th style="width: 20%;">Views</th>
-                            <th style="width: 20%;">Performance</th>
+                            <th>Page Title / URL</th>
+                            <th>Views</th>
+                            <th>Engagement</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php if (count($topPages) > 0): ?>
-                            <?php
-                            $maxViews = $topPages[0]['views']; // For progress bar
-                            foreach ($topPages as $page):
-                                $percent = ($page['views'] / $maxViews) * 100;
-                                ?>
-                                <tr>
-                                    <td>
-                                        <div style="font-weight: 600; font-size: 15px;">
-                                            <?php echo htmlspecialchars($page['page_title']); ?>
-                                        </div>
-                                        <div class="page-url"><?php echo htmlspecialchars($page['page_url']); ?></div>
-                                    </td>
-                                    <td style="font-size: 16px; font-weight: bold;"><?php echo number_format($page['views']); ?>
-                                    </td>
-                                    <td>
-                                        <div
-                                            style="background: rgba(255,255,255,0.1); height: 6px; border-radius: 3px; width: 100%;">
-                                            <div
-                                                style="background: var(--neon-accent); height: 100%; border-radius: 3px; width: <?php echo $percent; ?>%;">
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php else: ?>
+                        <?php foreach ($topPages as $p):
+                            $share = ($totalPageViews > 0) ? ($p['views'] / $totalPageViews) * 100 : 0; ?>
                             <tr>
-                                <td colspan="3" style="text-align: center; padding: 20px;">No page views recorded yet.</td>
+                                <td>
+                                    <div style="font-weight:600; color:#fff;">
+                                        <?php echo htmlspecialchars($p['page_title']); ?>
+                                    </div>
+                                    <div
+                                        style="font-size:12px; color:var(--text-muted); opacity:0.7; max-width:400px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                        <?php echo htmlspecialchars($p['page_url']); ?>
+                                    </div>
+                                </td>
+                                <td class="text-neon"><?php echo number_format($p['views']); ?></td>
+                                <td>
+                                    <div style="display:flex; align-items:center; gap:10px;">
+                                        <div class="progress-track" style="width:100px;">
+                                            <div class="progress-bar"
+                                                style="width:<?php echo $share; ?>%; background: #bd34fe;"></div>
+                                        </div>
+                                        <span style="font-size:11px;"><?php echo round($share, 1); ?>%</span>
+                                    </div>
+                                </td>
                             </tr>
-                        <?php endif; ?>
+                        <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
         </div>
+
     </div>
 
     <script>
-        // Common Chart Options
-        const commonOptions = {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        color: '#8892b0',
-                        font: {
-                            family: "'Inter', sans-serif"
-                        },
-                        padding: 20
-                    }
-                },
-                tooltip: {
-                    backgroundColor: 'rgba(17, 34, 64, 0.9)',
-                    titleColor: '#ccd6f6',
-                    bodyColor: '#8892b0',
-                    borderColor: 'rgba(100, 255, 218, 0.3)',
-                    borderWidth: 1,
-                    padding: 10
-                }
-            }
-        };
+        // GLOBAL CHART DEFAULTS
+        Chart.defaults.color = '#8892b0';
+        Chart.defaults.borderColor = 'rgba(255,255,255,0.05)';
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.font.size = 11;
 
-        // Traffic Chart
-        const ctx = document.getElementById('trafficChart').getContext('2d');
-        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-        gradient.addColorStop(0, 'rgba(100, 255, 218, 0.4)');
-        gradient.addColorStop(1, 'rgba(100, 255, 218, 0.0)');
+        // 1. TRAFFIC LINE CHART
+        const ctxTraffic = document.getElementById('trafficChart').getContext('2d');
+        const gradTraffic = ctxTraffic.createLinearGradient(0, 0, 0, 300);
+        gradTraffic.addColorStop(0, 'rgba(100, 255, 218, 0.2)');
+        gradTraffic.addColorStop(1, 'rgba(100, 255, 218, 0)');
 
-        new Chart(ctx, {
+        new Chart(ctxTraffic, {
             type: 'line',
             data: {
                 labels: <?php echo json_encode($dates); ?>,
                 datasets: [{
-                    label: 'Page Views',
+                    label: 'Views',
                     data: <?php echo json_encode($counts); ?>,
                     borderColor: '#64ffda',
-                    backgroundColor: gradient,
                     borderWidth: 2,
-                    pointBackgroundColor: '#0a192f',
-                    pointBorderColor: '#64ffda',
-                    pointBorderWidth: 2,
-                    pointRadius: 4,
-                    pointHoverRadius: 6,
+                    backgroundColor: gradTraffic,
+                    fill: true,
                     tension: 0.4,
-                    fill: true
+                    pointRadius: 0,
+                    pointHoverRadius: 6
                 }]
             },
             options: {
-                ...commonOptions,
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: commonOptions.plugins.tooltip
-                },
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false, backgroundColor: '#112240', titleColor: '#e6f1ff', bodyColor: '#8892b0', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1 } },
                 scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: {
-                            color: 'rgba(255, 255, 255, 0.05)',
-                            drawBorder: false
-                        },
-                        ticks: {
-                            color: '#8892b0',
-                            font: {
-                                family: "'Inter', sans-serif"
-                            }
-                        }
-                    },
-                    x: {
-                        grid: {
-                            display: false
-                        },
-                        ticks: {
-                            color: '#8892b0',
-                            font: {
-                                family: "'Inter', sans-serif"
-                            }
-                        }
-                    }
+                    x: { grid: { display: false }, ticks: { maxTicksLimit: 7 } },
+                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, border: { dash: [5, 5] } }
                 }
             }
         });
 
-        // Device Chart (Donut)
-        new Chart(document.getElementById('deviceChart'), {
-            type: 'doughnut',
+        // 2. DAY OF WEEK BAR
+        new Chart(document.getElementById('dowChart'), {
+            type: 'bar',
             data: {
-                labels: <?php echo json_encode($deviceLabels); ?>,
-                datasets: [{
-                    data: <?php echo json_encode($deviceCounts); ?>,
-                    backgroundColor: ['#64ffda', '#ff6b6b', '#4cc9f0'],
-                    borderColor: '#020c1b',
-                    borderWidth: 2
-                }]
+                labels: <?php echo json_encode($dowLabels); ?>,
+                datasets: [{ label: 'Visits', data: <?php echo json_encode($dowCounts); ?>, backgroundColor: '#57cbff', borderRadius: 4, barThickness: 20 }]
             },
-            options: commonOptions
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { x: { grid: { display: false } }, y: { display: false } }
+            }
         });
 
-        // OS Chart (Donut)
-        new Chart(document.getElementById('osChart'), {
-            type: 'doughnut',
+        // 3. HOURLY LABELS
+        new Chart(document.getElementById('hourlyChart'), {
+            type: 'line',
             data: {
-                labels: <?php echo json_encode($osLabels); ?>,
-                datasets: [{
-                    data: <?php echo json_encode($osCounts); ?>,
-                    backgroundColor: ['#4cc9f0', '#ffbd2e', '#ff6b6b', '#64ffda', '#a8a8a8'],
-                    borderColor: '#020c1b',
-                    borderWidth: 2
-                }]
+                labels: <?php echo json_encode($hourlyLabels); ?>,
+                datasets: [{ label: 'Activity', data: <?php echo json_encode(array_values($hourlyCounts)); ?>, borderColor: '#ffbd2e', borderWidth: 2, tension: 0.4, pointRadius: 0 }]
             },
-            options: commonOptions
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { x: { ticks: { maxTicksLimit: 8 }, grid: { display: false } }, y: { display: false } }
+            }
         });
+
+        // 4. DONUT CONFIG
+        const donutOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '85%', // NEW: THINNER RINGS
+            plugins: { legend: { display: false } },
+            layout: { padding: 10 }
+        };
+
+        const brLabels = <?php echo json_encode($browserLabels); ?>;
+        const brCounts = <?php echo json_encode($browserCounts); ?>;
+        console.log('Browser Data:', brLabels, brCounts);
+
+        if (brCounts.length === 0) {
+            // Handle empty data if necessary, maybe show a "No Data" message
+            document.getElementById('browserChart').parentNode.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#8892b0;">No Data</div>';
+        } else {
+            new Chart(document.getElementById('browserChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: brLabels,
+                    datasets: [{ data: brCounts, backgroundColor: ['#64ffda', '#57cbff', '#bd34fe', '#ffbd2e', '#ff6b6b'], borderWidth: 0 }]
+                },
+                options: donutOptions
+            });
+        }
+
+        const osLabels = <?php echo json_encode($osLabels); ?>;
+        const osCounts = <?php echo json_encode($osCounts); ?>;
+        if (osCounts.length === 0) {
+            document.getElementById('osChart').parentNode.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#8892b0;">No Data</div>';
+        } else {
+            new Chart(document.getElementById('osChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: osLabels,
+                    datasets: [{ data: osCounts, backgroundColor: ['#ff6b6b', '#ffbd2e', '#57cbff', '#64ffda', '#bd34fe'], borderWidth: 0 }]
+                },
+                options: donutOptions
+            });
+        }
+
     </script>
 </body>
 
