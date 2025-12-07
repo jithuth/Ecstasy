@@ -11,6 +11,7 @@
         <li><a href="careers.php" class="<?php echo ($currentPage == 'careers') ? 'active' : ''; ?>">Careers</a></li>
         <li><a href="applications.php"
                 class="<?php echo ($currentPage == 'applications') ? 'active' : ''; ?>">Applications</a></li>
+        <li><a href="why_work.php" class="<?php echo ($currentPage == 'why_work') ? 'active' : ''; ?>">Why Work</a></li>
         <li><a href="analytics.php" class="<?php echo ($currentPage == 'analytics') ? 'active' : ''; ?>">Analytics</a>
         </li>
         <li><a href="logout.php" class="logout-btn"><i class="fas fa-sign-out-alt"></i></a></li>

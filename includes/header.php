@@ -60,6 +60,7 @@ $currentTitle = isset($pageTitle) ? $pageTitle . ' | ' . get_setting($pdo, 'site
                 <li><a href="about.php">About</a></li>
                 <li><a href="services.php">Services</a></li>
                 <li><a href="careers.php">Careers</a></li>
+                <li><a href="why_work.php">Why Work With Us</a></li>
                 <li><a href="contact.php">Contact</a></li>
                 <li>
                     <button id="theme-toggle" class="theme-toggle" title="Toggle Theme">☀️</button>
